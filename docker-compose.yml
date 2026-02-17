@@ -2,13 +2,7 @@ version: '3.8'
 
 services:
   spark-master-4.0.1-comet:
-    build:
-      context: .
-      dockerfile: docker/spark-4.0.1-comet/Dockerfile
-    # NOTE: Uses Spark 3.5.0 image as 4.0.1 is not yet available.
-    # Comet is built for Spark 3.5.0.
-    image: sparkling/spark-comet:4.0.1
-
+    image: docker.io/spark:4.0.1-scala2.13-java21-python3-ubuntu
     ports:
       - "8080:8080"
       - "7077:7077"
@@ -23,8 +17,8 @@ services:
       - SPARK_USER=spark
       - |
         SPARK_MASTER_OPTS=
-        --conf spark.driver.extraClassPath=/opt/bitnami/spark/jars/comet-spark-spark3.5_2.12-0.4.0.jar
-        --conf spark.executor.extraClassPath=/opt/bitnami/spark/jars/comet-spark-spark3.5_2.12-0.4.0.jar
+        --conf spark.driver.extraClassPath=/opt/spark/jars/comet-spark-spark4.0_2.13-0.11.0.jar
+        --conf spark.executor.extraClassPath=/opt/spark/jars/comet-spark-spark4.0_2.13-0.11.0.jar
         --conf spark.plugins=org.apache.spark.CometPlugin
         --conf spark.shuffle.manager=org.apache.spark.sql.comet.execution.shuffle.CometShuffleManager
         --conf spark.comet.explainFallback.enabled=true
@@ -32,7 +26,7 @@ services:
         --conf spark.memory.offHeap.size=16g
 
   spark-worker-4.0.1-comet:
-    image: sparkling/spark-comet:4.0.1
+    image: docker.io/spark:4.0.1-scala2.13-java21-python3-ubuntu
     depends_on:
       - spark-master-4.0.1-comet
     ports:
@@ -51,8 +45,7 @@ services:
       - ./data:/data
 
   spark-master-4.1.0:
-    # NOTE: Uses Spark 3.5.1 image as 4.1.0 is not yet available.
-    image: bitnami/spark:3.5.1
+    image: apache/spark:4.1.0-java17
     ports:
       - "8082:8080"
       - "7078:7077"
@@ -67,7 +60,7 @@ services:
       - SPARK_USER=spark
 
   spark-worker-4.1.0:
-    image: bitnami/spark:3.5.1
+    image: apache/spark:4.1.0-java17
     depends_on:
       - spark-master-4.1.0
     ports:

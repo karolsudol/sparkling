@@ -1,10 +1,8 @@
 # Sparkling ✨
 
-PySpark with two different Spark versions using Docker.
+PySpark with Datafusion and Declarative Pipelines.
 
 ## Usage
-
-This project is managed via the `Makefile`. Here are the most common commands:
 
 *   `make up`: Build the Docker images and start the services in detached mode.
 *   `make down`: Stop the services.
