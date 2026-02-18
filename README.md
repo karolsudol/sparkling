@@ -4,8 +4,11 @@ PySpark with Datafusion and Declarative Pipelines.
 
 ## Usage
 
-*   `make up`: Build the Docker images and start the services in detached mode.
-*   `make down`: Stop the services.
+*   `make build`: Build the Docker images for all services.
+*   `make start`: Start the services. If containers are stopped, it will restart them. If they don't exist, they will be created.
+*   `make up`: A shortcut to build the images and then start the services.
+*   `make stop`: Stop the running services without removing the containers.
+*   `make down`: Stop and remove the containers.
 *   `make clean`: Stop and remove all containers, volumes, and images associated with the project.
 *   `make logs`: View the logs from all services.
 

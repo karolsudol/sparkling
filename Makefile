@@ -1,10 +1,16 @@
-.PHONY: up down build logs
+.PHONY: up down build logs start stop
 
 up:
 	docker-compose up -d --build
 
+start:
+	docker-compose up -d
+
 down:
 	docker-compose down
+
+stop:
+	docker-compose stop
 
 build:
 	docker-compose build
@@ -22,8 +28,8 @@ spark-4.1.0-shell:
 
 # Jupyterlab
 jupyter:
-	@echo "JupyterLab running at http://localhost:8888/?token=sparkling"
-	docker-compose exec jupyterlab /bin/bash
+	@echo "JupyterLab is running. Access it at the following URL:"
+	@echo "http://localhost:8888/?token=sparkling"
 
 # Run hello_spark.py on Spark 4.0.1
 run-hello-spark-4.0.1:

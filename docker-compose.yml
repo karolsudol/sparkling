@@ -87,7 +87,3 @@ services:
       - "8888:8888"
     volumes:
       - ./notebooks:/opt/notebooks
-    environment:
-      - JUPYTER_ENABLE_LAB=yes
-      - JUPYTER_TOKEN=sparkling
-    command: start-notebook.sh --NotebookApp.notebook_dir=/opt/notebooks
