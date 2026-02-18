@@ -20,7 +20,5 @@ PySpark with Datafusion and Declarative Pipelines.
 
 ### Running the Example Application
 
-This project includes a "Hello World" PySpark application in `notebooks/hello_spark.py`. You can run this application on either of the configured Spark clusters.
-
 *   `make run-hello-spark-4.0.1`: Run the application on the Spark 4.0.1 cluster with Comet.
 *   `make run-hello-spark-4.1.0`: Run the application on the standard Spark 4.1.0 cluster.
