@@ -3,6 +3,10 @@
 # Start the cluster (Master + Worker)
 up:
 	docker-compose up -d --build
+	@echo "--------------------------------------------------"
+	@echo "Spark Master UI: http://localhost:8080"
+	@echo "Spark Worker UI: http://localhost:8081"
+	@echo "--------------------------------------------------"
 
 # Stop the containers without removing them
 stop:
