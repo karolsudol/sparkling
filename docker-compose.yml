@@ -3,6 +3,8 @@ version: '3.8'
 services:
   spark-master-4.0.1-comet:
     image: docker.io/spark:4.0.1-scala2.13-java21-python3-ubuntu
+    hostname: spark-master-4.0.1-comet
+    container_name: spark-master-4.0.1-comet
     ports:
       - "8080:8080"
       - "7077:7077"
@@ -27,6 +29,8 @@ services:
 
   spark-worker-4.0.1-comet:
     image: docker.io/spark:4.0.1-scala2.13-java21-python3-ubuntu
+    hostname: spark-worker-4.0.1-comet
+    container_name: spark-worker-4.0.1-comet
     depends_on:
       - spark-master-4.0.1-comet
     ports:
@@ -46,6 +50,8 @@ services:
 
   spark-master-4.1.0:
     image: apache/spark:4.1.0-java17
+    hostname: spark-master-4.1.0
+    container_name: spark-master-4.1.0
     ports:
       - "8082:8080"
       - "7078:7077"
@@ -61,13 +67,15 @@ services:
 
   spark-worker-4.1.0:
     image: apache/spark:4.1.0-java17
+    hostname: spark-worker-4.1.0
+    container_name: spark-worker-4.1.0
     depends_on:
       - spark-master-4.1.0
     ports:
       - "8083:8080"
     environment:
       - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master-4.1.0:7078
+      - SPARK_MASTER_URL=spark://spark-master-4.1.0:7077
       - SPARK_WORKER_MEMORY=4g
       - SPARK_WORKER_CORES=2
       - SPARK_RPC_AUTHENTICATION_ENABLED=no
@@ -82,6 +90,8 @@ services:
     build:
       context: .
       dockerfile: docker/jupyter/Dockerfile
+    hostname: jupyterlab
+    container_name: jupyterlab
     image: sparkling/jupyterlab:latest
     ports:
       - "8888:8888"
