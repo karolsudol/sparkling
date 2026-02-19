@@ -1,8 +1,7 @@
+
 import os
 from pyspark.sql import SparkSession
 
-# Get the Spark master URL from an environment variable
-spark_master_url = os.environ.get("SPARK_MASTER_URL", "spark://spark-master:7077")
 app_name = os.environ.get("SPARK_APP_NAME", "PySparkHelloWorld")
 
 def main():
@@ -11,17 +10,17 @@ def main():
     """
     print("="*50)
     print(f"SPARK_APP_NAME: {app_name}")
-    print(f"Connecting to Spark master at: {spark_master_url}")
     print("="*50)
 
     try:
         spark = SparkSession.builder \
             .appName(app_name) \
-            .master(spark_master_url) \
             .getOrCreate()
 
         print(f"Successfully created SparkSession for app: {spark.sparkContext.appName}")
         print(f"Spark version: {spark.version}")
+        print(f"Spark master: {spark.sparkContext.master}")
+
 
         # Create a simple DataFrame
         data = [("hello", 1), ("world", 2), ("from", 3), ("pyspark", 4)]

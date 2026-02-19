@@ -19,6 +19,4 @@ spark-shell:
 	docker-compose exec spark-master spark-shell
 
 run-hello-spark:
-	docker-compose exec \
-		-e SPARK_MASTER_URL=spark://spark-master:7077 \
-		jupyterlab spark-submit /opt/src/hello_spark.py
+	docker-compose run --rm spark-master /opt/spark/bin/spark-submit --master spark://spark-master:7077 /opt/src/hello_spark.py
