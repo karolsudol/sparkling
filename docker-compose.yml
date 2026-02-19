@@ -10,6 +10,8 @@ services:
     ports:
       - "8080:8080"   # Spark Master Web UI
       - "7077:7077"   # Spark Master port
+    volumes:
+      - ./spark-warehouse:/app/spark-warehouse
     networks:
       - spark-network
     healthcheck:
@@ -27,6 +29,31 @@ services:
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     ports:
       - "8081:8081"   # Spark Worker Web UI
+    volumes:
+      - ./spark-warehouse:/app/spark-warehouse
+    networks:
+      - spark-network
+
+  spark-connect:
+    image: spark-4.1.1-uv:latest
+    container_name: spark-connect
+    hostname: spark-connect
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    ports:
+      - "15002:15002" # Spark Connect gRPC port
+    command: >
+      /opt/spark/bin/spark-submit
+      --master spark://spark-master:7077
+      --conf spark.driver.host=spark-connect
+      --conf spark.driver.port=15003
+      --conf spark.driver.bindAddress=0.0.0.0
+      --conf spark.sql.warehouse.dir=file:///app/spark-warehouse
+      --class org.apache.spark.sql.connect.service.SparkConnectServer
+      /opt/spark/external/spark-connect-assembly_2.13-4.1.1.jar
+    volumes:
+      - ./spark-warehouse:/app/spark-warehouse
     networks:
       - spark-network
 
@@ -38,16 +65,25 @@ services:
       spark-master:
         condition: service_healthy
     environment:
-      - SPARK_APPLICATION_SCRIPT=/app/hello_spark.py
+      - SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml
+      - SPARK_REMOTE=sc://spark-connect:15002
+      - SPARK_APP_TYPE=sdp
     command: >
       /bin/bash -c "
-      /opt/spark/bin/spark-submit
-      --master spark://spark-master:7077
-      $${SPARK_APPLICATION_SCRIPT}
+      if [ \"$${SPARK_APP_TYPE}\" == \"sdp\" ]; then
+        /usr/local/bin/spark-pipelines run \
+          --spec $${SPARK_APPLICATION_SCRIPT} \
+          --conf spark.sql.warehouse.dir=file:///app/spark-warehouse
+      else
+        python3 $${SPARK_APPLICATION_SCRIPT}
+      fi
       "
     volumes:
-      - ./src:/app
+      - ./src:/app/src
       - ./data:/data
+      - ./checkpoints:/checkpoints
+      - ./spark-warehouse:/app/spark-warehouse
+      - ./spark-pipeline.yml:/app/spark-pipeline.yml
     networks:
       - spark-network
 

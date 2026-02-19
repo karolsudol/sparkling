@@ -1,53 +1,48 @@
 # Sparkling 🥂
 
-A simple Spark 4.1.1 development environment using Docker and `uv`.
+A modern Spark 4.1.1 development environment featuring **Spark Connect** and **Spark Declarative Pipelines (SDP)**.
 
 ## Features
-- **Spark 4.1.1**: Official Apache Spark image.
-- **UV**: Fast Python package installer included in the Spark images.
-- **PySpark Hello World**: Sample application in `src/hello_spark.py`.
-- **Docker Compose**: Easy management of Spark Master, Worker, and App containers.
+- **Spark 4.1.1**: Official Apache Spark environment.
+- **Spark Connect**: Decoupled client-server architecture using gRPC (`sc://localhost:15002`).
+- **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `spark-pipelines` CLI.
+- **UV Powered**: High-performance Python package management included.
+- **Colored Logs**: Enhanced readability for both system and application logs.
+- **Shared Warehouse**: Persistent data storage accessible across the entire cluster.
+
+## Architecture
+- **Spark Connect (`spark-connect`)**: The gRPC gateway that receives and optimizes query plans.
+- **Master (`spark-master`)**: The central orchestrator for resource allocation.
+- **Worker (`spark-worker`)**: The computational engine that executes tasks.
+- **Driver (`spark-app`)**: A flexible client container used to submit pipelines or standard scripts.
 
 ## Prerequisites
 - Docker and Docker Compose
 - `make`
 
-## Getting Started
+## Available Commands
 
-### 1. Start the Cluster
-To build the images and start the Spark Master and Worker:
-```bash
-make up
-```
+### Cluster Lifecycle
+- `make up`: Build and start the entire cluster (Master, Worker, Connect).
+- `make start`: Quickly resume stopped containers.
+- `make stop`: Pause the cluster.
+- `make clean`: Deep clean (removes containers, volumes, and built images).
 
-### 2. Run the Sample Application
-To run the PySpark hello world application:
-```bash
-make run
-```
+### Running Applications
+- `make run`: Execute the default **SDP Pipeline** defined in `spark-pipeline.yml`.
+- `make run-app APP=src/hello_spark.py`: Run a **standard PySpark script** via Spark Connect.
 
-### 3. Access Spark UI
+### Utility
+- `make logs`: Follow container logs.
+- `make ps`: Check the status of all services.
+
+## Access Spark UI
 - **Spark Master UI**: [http://localhost:8080](http://localhost:8080)
 - **Spark Worker UI**: [http://localhost:8081](http://localhost:8081)
+- **Spark Connect**: `sc://localhost:15002`
 
 ## Project Structure
-- `src/`: PySpark source code.
-- `data/`: Local data directory mounted to `/data` in the container.
-- `Dockerfile.spark`: Custom Spark image with `uv` and Python 3.
-- `docker-compose.yml`: Defines the Spark infrastructure.
-
-## Architecture
-- **Driver (`spark-app`)**: Coordinates the application, splits work into tasks, and manages execution.
-- **Master (`spark-master`)**: The central orchestrator that schedules jobs and allocates resources.
-- **Worker (`spark-worker`)**: Hosts computational resources and executes tasks assigned by the Master.
-
-## Available Commands
-- `make up`: Build and start the cluster.
-- `make start`: Start existing containers (fast).
-- `make run`: Run the default `hello_spark.py`.
-- `make run APP=script.py`: Run a specific script from the `src/` directory.
-- `make stop`: Stop the containers.
-- `make clean`: Deep clean (removes containers, volumes, and images).
-- `make logs`: View container logs.
-- `make ps`: Check cluster status.
-- `make spark-shell`: Open an interactive PySpark shell on the master.
+- `src/`: Your Python source code and SDP flow definitions.
+- `spark-pipeline.yml`: Configuration for Declarative Pipelines.
+- `spark-warehouse/`: Local directory where Materialized Views are persisted as Parquet files.
+- `checkpoints/`: Storage for streaming and pipeline metadata.

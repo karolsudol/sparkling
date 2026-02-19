@@ -4,13 +4,21 @@ USER 0
 
 # Install Python and curl
 RUN apt-get update && \
-    apt-get install -y python3 curl && \
+    apt-get install -y python3 python3-pip curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Install uv system-wide
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
+# Install pyspark with pipeline support
+RUN uv pip install --system "pyspark[pipelines]==4.1.1"
+
 # Copy custom log4j configuration for colored logs
 COPY log4j2.properties /opt/spark/conf/log4j2.properties
+
+# Create app directories and set permissions
+RUN mkdir -p /app/spark-warehouse /checkpoints && \
+    chown -R 185:0 /app /checkpoints && \
+    chmod -R 775 /app /checkpoints
 
 USER 185
