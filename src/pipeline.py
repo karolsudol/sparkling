@@ -2,8 +2,8 @@ from pyspark import pipelines as dp
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 
-# In SDP, the 'spark' session is automatically available
-# but we define it here for local IDE support if needed.
+# --- THE DECLARATIVE PIPELINE ---
+# This file defines the 'What' (The Data Graph)
 
 @dp.materialized_view(name="source_numbers")
 def create_source():

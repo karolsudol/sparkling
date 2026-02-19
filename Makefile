@@ -26,14 +26,22 @@ stop:
 clean:
 	docker-compose down -v --rmi local --remove-orphans
 
-# Run a Spark Pipeline (SDP)
+# Consolidated Run: Clean -> Pipeline -> Verify
 run:
-	docker-compose run --rm -e SPARK_APP_TYPE=sdp -e SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml spark-app
+	@echo "${BLUE}Cleaning up old warehouse data...${END}"
+	@sudo rm -rf spark-warehouse/*
+	@echo "${BLUE}Running Declarative Pipeline (SDP)...${END}"
+	@docker-compose run --rm -e SPARK_APP_TYPE=sdp -e SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml spark-app
+	@echo "${BLUE}Running Masterclass Demo & Verification...${END}"
+	@docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/src/masterclass.py spark-app
 
-# Run a standard PySpark script
-# Usage: make run-app APP=src/script.py
+# Run a specific script
 run-app:
-	docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/$(or $(APP),src/01_lazy_evaluation.py) spark-app
+	docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/$(or $(APP),src/masterclass.py) spark-app
+
+# Helpers for colors
+BLUE=\033[94m
+END=\033[0m
 
 # View logs
 logs:
