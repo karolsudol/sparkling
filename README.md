@@ -36,12 +36,17 @@ make run
 - `Dockerfile.spark`: Custom Spark image with `uv` and Python 3.
 - `docker-compose.yml`: Defines the Spark infrastructure.
 
+## Architecture
+- **Driver (`spark-app`)**: Coordinates the application, splits work into tasks, and manages execution.
+- **Master (`spark-master`)**: The central orchestrator that schedules jobs and allocates resources.
+- **Worker (`spark-worker`)**: Hosts computational resources and executes tasks assigned by the Master.
+
 ## Available Commands
 - `make up`: Build and start the cluster.
-- `make down`: Stop and remove the cluster.
+- `make run`: Run the default `hello_spark.py`.
+- `make run APP=script.py`: Run a specific script from the `src/` directory.
 - `make stop`: Stop the containers.
-- `make build`: Rebuild the images.
+- `make clean`: Deep clean (removes containers, volumes, and images).
 - `make logs`: View container logs.
-- `make clean`: Deep clean of containers and images.
-- `make run`: Run the sample PySpark application.
+- `make ps`: Check cluster status.
 - `make spark-shell`: Open an interactive PySpark shell on the master.

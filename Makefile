@@ -12,9 +12,10 @@ stop:
 clean:
 	docker-compose down -v --rmi local --remove-orphans
 
-# Run the Hello World application
+# Run a PySpark application (default: hello_spark.py)
+# Usage: make run [APP=your_script.py]
 run:
-	docker-compose run --rm spark-app
+	SPARK_APPLICATION_SCRIPT=/app/$(or $(APP),hello_spark.py) docker-compose run --rm spark-app
 
 # View logs
 logs:

@@ -37,10 +37,12 @@ services:
     depends_on:
       spark-master:
         condition: service_healthy
+    environment:
+      - SPARK_APPLICATION_SCRIPT=${SPARK_APPLICATION_SCRIPT:-/app/hello_spark.py}
     command: >
       /opt/spark/bin/spark-submit
       --master spark://spark-master:7077
-      /app/hello_spark.py
+      ${SPARK_APPLICATION_SCRIPT}
     volumes:
       - ./src:/app
       - ./data:/data
