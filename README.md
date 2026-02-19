@@ -1,43 +1,47 @@
-# Sparkling ✨
+# Sparkling 🥂
 
-A simple PySpark project setup with Docker for running Spark applications.
+A simple Spark 4.1.1 development environment using Docker and `uv`.
 
-This project provides a development environment with:
-- Spark 4.1.0 (a master and a worker).
-- A `spark-client` service with Python and `pyspark` for submitting jobs.
-- A `src` directory for your Python applications.
+## Features
+- **Spark 4.1.1**: Official Apache Spark image.
+- **UV**: Fast Python package installer included in the Spark images.
+- **PySpark Hello World**: Sample application in `src/hello_spark.py`.
+- **Docker Compose**: Easy management of Spark Master, Worker, and App containers.
 
-## Project Structure
-- `src/`: Your Python applications live here. Includes `hello_spark.py`.
-- `data/`: A directory for your data files (mounted into Spark).
-- `docker/`: Contains the Dockerfile for the `spark-client` service.
+## Prerequisites
+- Docker and Docker Compose
+- `make`
 
-## Usage
+## Getting Started
 
-First, start the Spark cluster:
+### 1. Start the Cluster
+To build the images and start the Spark Master and Worker:
 ```bash
 make up
 ```
 
-This will build the Docker images and start the Spark master and worker.
-
-### Running a Spark Application
-
-The `hello_spark.py` application is in the `src` directory. To run it on the Spark cluster, use the following command:
+### 2. Run the Sample Application
+To run the PySpark hello world application:
 ```bash
-make run-hello-spark
-```
-This command uses the `spark-client` service to submit the application to the Spark cluster.
-
-### Spark Shell
-
-To open a `spark-shell` in the master node:
-```bash
-make spark-shell
+make run
 ```
 
-### Other commands
-*   `make down`: Stop the services.
-*   `make logs`: View the logs from all services.
-*   `make build`: Build the docker images.
-*   `make clean`: Stop and remove all containers, volumes, and images associated with the project.
+### 3. Access Spark UI
+- **Spark Master UI**: [http://localhost:8080](http://localhost:8080)
+- **Spark Worker UI**: [http://localhost:8081](http://localhost:8081)
+
+## Project Structure
+- `src/`: PySpark source code.
+- `data/`: Local data directory mounted to `/data` in the container.
+- `Dockerfile.spark`: Custom Spark image with `uv` and Python 3.
+- `docker-compose.yml`: Defines the Spark infrastructure.
+
+## Available Commands
+- `make up`: Build and start the cluster.
+- `make down`: Stop and remove the cluster.
+- `make stop`: Stop the containers.
+- `make build`: Rebuild the images.
+- `make logs`: View container logs.
+- `make clean`: Deep clean of containers and images.
+- `make run`: Run the sample PySpark application.
+- `make spark-shell`: Open an interactive PySpark shell on the master.
