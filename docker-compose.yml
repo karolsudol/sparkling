@@ -1,93 +1,91 @@
-version: '3.8'
-
 services:
-  spark-master-4.0.1-comet:
-    image: docker.io/spark:4.0.1-scala2.13-java21-python3-ubuntu
-    ports:
-      - "8080:8080"
-      - "7077:7077"
-    volumes:
-      - ./data:/data
-    environment:
-      - SPARK_MODE=master
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-      - |
-        SPARK_MASTER_OPTS=
-        --conf spark.driver.extraClassPath=/opt/spark/jars/comet-spark-spark4.0_2.13-0.11.0.jar
-        --conf spark.executor.extraClassPath=/opt/spark/jars/comet-spark-spark4.0_2.13-0.11.0.jar
-        --conf spark.plugins=org.apache.spark.CometPlugin
-        --conf spark.shuffle.manager=org.apache.spark.sql.comet.execution.shuffle.CometShuffleManager
-        --conf spark.comet.explainFallback.enabled=true
-        --conf spark.memory.offHeap.enabled=true
-        --conf spark.memory.offHeap.size=16g
-
-  spark-worker-4.0.1-comet:
-    image: docker.io/spark:4.0.1-scala2.13-java21-python3-ubuntu
-    depends_on:
-      - spark-master-4.0.1-comet
-    ports:
-      - "8081:8080"
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master-4.0.1-comet:7077
-      - SPARK_WORKER_MEMORY=4g
-      - SPARK_WORKER_CORES=2
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-    volumes:
-      - ./data:/data
-
-  spark-master-4.1.0:
-    image: apache/spark:4.1.0-java17
-    ports:
-      - "8082:8080"
-      - "7078:7077"
-    volumes:
-      - ./data:/data
-    environment:
-      - SPARK_MODE=master
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-
-  spark-worker-4.1.0:
-    image: apache/spark:4.1.0-java17
-    depends_on:
-      - spark-master-4.1.0
-    ports:
-      - "8083:8080"
-    environment:
-      - SPARK_MODE=worker
-      - SPARK_MASTER_URL=spark://spark-master-4.1.0:7078
-      - SPARK_WORKER_MEMORY=4g
-      - SPARK_WORKER_CORES=2
-      - SPARK_RPC_AUTHENTICATION_ENABLED=no
-      - SPARK_RPC_ENCRYPTION_ENABLED=no
-      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
-      - SPARK_SSL_ENABLED=no
-      - SPARK_USER=spark
-    volumes:
-      - ./data:/data
-
-  jupyterlab:
+  spark-master:
     build:
       context: .
-      dockerfile: docker/jupyter/Dockerfile
-    image: sparkling/jupyterlab:latest
+      dockerfile: Dockerfile.spark
+    image: spark-4.1.1-uv:latest
+    container_name: spark-master
+    hostname: spark-master
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
     ports:
-      - "8888:8888"
+      - "8080:8080"   # Spark Master Web UI
+      - "7077:7077"   # Spark Master port
     volumes:
-      - ./notebooks:/opt/notebooks
+      - ./spark-warehouse:/app/spark-warehouse
+    networks:
+      - spark-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  spark-worker:
+    image: spark-4.1.1-uv:latest
+    container_name: spark-worker
+    hostname: spark-worker
+    depends_on:
+      - spark-master
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    ports:
+      - "8081:8081"   # Spark Worker Web UI
+    volumes:
+      - ./spark-warehouse:/app/spark-warehouse
+    networks:
+      - spark-network
+
+  spark-connect:
+    image: spark-4.1.1-uv:latest
+    container_name: spark-connect
+    hostname: spark-connect
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    ports:
+      - "15002:15002" # Spark Connect gRPC port
+    command: >
+      /opt/spark/bin/spark-submit
+      --master spark://spark-master:7077
+      --conf spark.driver.host=spark-connect
+      --conf spark.driver.port=15003
+      --conf spark.driver.bindAddress=0.0.0.0
+      --conf spark.sql.warehouse.dir=file:///app/spark-warehouse
+      --class org.apache.spark.sql.connect.service.SparkConnectServer
+      /opt/spark/external/spark-connect-assembly_2.13-4.1.1.jar
+    volumes:
+      - ./spark-warehouse:/app/spark-warehouse
+    networks:
+      - spark-network
+
+  spark-app:
+    image: spark-4.1.1-uv:latest
+    container_name: spark-app
+    hostname: spark-app
+    depends_on:
+      spark-master:
+        condition: service_healthy
     environment:
-      - JUPYTER_ENABLE_LAB=yes
-      - JUPYTER_TOKEN=sparkling
-    command: start-notebook.sh --NotebookApp.notebook_dir=/opt/notebooks
+      - SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml
+      - SPARK_REMOTE=sc://spark-connect:15002
+      - SPARK_APP_TYPE=sdp
+    command: >
+      /bin/bash -c "
+      if [ \"$${SPARK_APP_TYPE}\" == \"sdp\" ]; then
+        /usr/local/bin/spark-pipelines run \
+          --spec $${SPARK_APPLICATION_SCRIPT} \
+          --conf spark.sql.warehouse.dir=file:///app/spark-warehouse
+      else
+        python3 $${SPARK_APPLICATION_SCRIPT}
+      fi
+      "
+    volumes:
+      - ./src:/app/src
+      - ./checkpoints:/checkpoints
+      - ./spark-warehouse:/app/spark-warehouse
+      - ./spark-pipeline.yml:/app/spark-pipeline.yml
+    networks:
+      - spark-network
+
+networks:
+  spark-network:
+    driver: bridge

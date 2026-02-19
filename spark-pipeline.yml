@@ -1,0 +1,8 @@
+name: my_first_sdp_pipeline
+libraries:
+  - glob:
+      include: src/pipeline.py
+storage: file:///checkpoints
+database: default
+configuration:
+  spark.sql.shuffle.partitions: "2"

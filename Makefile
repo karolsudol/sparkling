@@ -1,51 +1,52 @@
-.PHONY: up down build logs
+.PHONY: up start stop clean run logs ps
 
+# Build and start the cluster
 up:
-	docker-compose up -d --build
+	docker-compose up -d --build spark-master spark-worker spark-connect
+	@$(MAKE) urls
 
-down:
-	docker-compose down
+# Start existing containers without rebuilding
+start:
+	docker-compose up -d spark-master spark-worker spark-connect
+	@$(MAKE) urls
 
-build:
-	docker-compose build
+# Display Spark Web UI URLs
+urls:
+	@echo "--------------------------------------------------"
+	@echo "Spark Master UI:  http://localhost:8080"
+	@echo "Spark Worker UI:  http://localhost:8081"
+	@echo "Spark Connect:    sc://localhost:15002"
+	@echo "--------------------------------------------------"
 
+# Stop the containers without removing them
+stop:
+	docker-compose stop
+
+# Clean everything: containers, volumes, and local images
+clean:
+	docker-compose down -v --rmi local --remove-orphans
+
+# Consolidated Run: Clean -> Pipeline -> Verify
+run:
+	@echo "${BLUE}Cleaning up old warehouse data...${END}"
+	@sudo rm -rf spark-warehouse/*
+	@echo "${BLUE}Running Declarative Pipeline (SDP)...${END}"
+	@docker-compose run --rm -e SPARK_APP_TYPE=sdp -e SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml spark-app
+	@echo "${BLUE}Running Masterclass Demo & Verification...${END}"
+	@docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/src/masterclass.py spark-app
+
+# Run a specific script
+run-app:
+	docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/$(or $(APP),src/masterclass.py) spark-app
+
+# Helpers for colors
+BLUE=\033[94m
+END=\033[0m
+
+# View logs
 logs:
 	docker-compose logs -f
 
-# Spark 4.0.1 with Comet
-spark-4.0.1-shell:
-	docker-compose exec spark-master-4.0.1-comet spark-shell
-
-# Spark 4.1.0
-spark-4.1.0-shell:
-	docker-compose exec spark-master-4.1.0 spark-shell
-
-# Jupyterlab
-jupyter:
-	@echo "JupyterLab running at http://localhost:8888/?token=sparkling"
-	docker-compose exec jupyterlab /bin/bash
-
-# Run hello_spark.py on Spark 4.0.1
-run-hello-spark-4.0.1:
-	docker-compose exec \
-		-e SPARK_MASTER_URL=spark://spark-master-4.0.1-comet:7077 \
-		jupyterlab spark-submit /opt/notebooks/hello_spark.py
-
-# Run hello_spark.py on Spark 4.1.0
-run-hello-spark-4.1.0:
-	docker-compose exec jupyterlab \
-		bash -c "uv pip install --system pyspark==4.1.0 && \
-		SPARK_MASTER_URL=spark://spark-master-4.1.0:7078 \
-		spark-submit /opt/notebooks/hello_spark.py"
-
-# Spark-submit on jupyterlab for Spark 4.0.1
-spark-submit-4.0.1:
-	docker-compose exec jupyterlab spark-submit
-
-# Spark-submit on jupyterlab for Spark 4.1.0
-spark-submit-4.1.0:
-	docker-compose exec jupyterlab bash -c "uv pip install --system pyspark==4.1.0 && spark-submit"
-
-# Clean up
-clean:
-	docker-compose down -v --rmi all --remove-orphans
+# Check status
+ps:
+	docker-compose ps
