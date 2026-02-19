@@ -10,4 +10,7 @@ RUN apt-get update && \
 # Install uv system-wide
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
+# Copy custom log4j configuration for colored logs
+COPY log4j2.properties /opt/spark/conf/log4j2.properties
+
 USER 185
