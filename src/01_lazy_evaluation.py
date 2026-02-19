@@ -1,6 +1,6 @@
 import time
 from pyspark.sql import SparkSession
-from hello_spark import Colors
+from utils import Colors
 
 def main():
     spark = SparkSession.builder.appName("LazyEvaluationDemo").getOrCreate()

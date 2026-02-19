@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from hello_spark import Colors
+from utils import Colors
 import os
 
 def main():

@@ -31,9 +31,9 @@ run:
 	docker-compose run --rm -e SPARK_APP_TYPE=sdp -e SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml spark-app
 
 # Run a standard PySpark script
-# Usage: make run-app APP=your_script.py
+# Usage: make run-app APP=src/script.py
 run-app:
-	docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/$(or $(APP),hello_spark.py) spark-app
+	docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/$(or $(APP),src/01_lazy_evaluation.py) spark-app
 
 # View logs
 logs:

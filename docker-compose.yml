@@ -80,7 +80,6 @@ services:
       "
     volumes:
       - ./src:/app/src
-      - ./data:/data
       - ./checkpoints:/checkpoints
       - ./spark-warehouse:/app/spark-warehouse
       - ./spark-pipeline.yml:/app/spark-pipeline.yml
