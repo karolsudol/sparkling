@@ -1,27 +1,49 @@
 # Sparkling ✨
 
-PySpark with Datafusion and Declarative Pipelines.
+A simple PySpark project setup with Docker.
+
+This project provides a development environment with:
+- Spark 4.1.0 (a master and a worker)
+- A `src` directory for your Python applications.
+- JupyterLab with `pyspark` installed via `uv`.
+
+## Project Structure
+- `src/`: Your Python applications live here. Includes `hello_spark.py`.
+- `notebooks/`: Your Jupyter notebooks live here. Includes `hello_jupyter.ipynb`.
+- `data/`: A directory for your data files (mounted into Spark).
 
 ## Usage
 
-*   `make build`: Build the Docker images for all services.
-*   `make start`: Start the services. If containers are stopped, it will restart them. If they don't exist, they will be created.
-*   `make up`: A shortcut to build the images and then start the services.
-*   `make stop`: Stop the running services without removing the containers.
-*   `make down`: Stop and remove the containers.
-*   `make clean`: Stop and remove all containers, volumes, and images associated with the project.
-*   `make logs`: View the logs from all services.
+First, start the services:
+```bash
+make up
+```
 
-### Spark
+This will build the Docker images and start the Spark cluster and JupyterLab.
 
-*   `make spark-4.0.1-shell`: Open a Spark shell in the Spark 4.0.1 cluster with Comet enabled.
-*   `make spark-4.1.0-shell`: Open a Spark shell in the standard Spark 4.1.0 cluster.
+### Running the example Spark Application
+
+The `hello_spark.py` application is located in the `src` directory. To run it on the Spark cluster:
+```bash
+make run-hello-spark
+```
+
+### Spark Shell
+
+To open a `spark-shell` in the master node:
+```bash
+make spark-shell
+```
 
 ### JupyterLab
 
-*   `make jupyter`: Display the URL to access JupyterLab. Once you run `make up`, JupyterLab will be available at `http://localhost:8888` with the access token `sparkling`.
+JupyterLab is running at [http://localhost:8888](http://localhost:8888).
+The access token is `sparkling`.
 
-### Running the Example Application
+The `notebooks` directory is available in JupyterLab for you to create and edit notebooks.
 
-*   `make run-hello-spark-4.0.1`: Run the application on the Spark 4.0.1 cluster with Comet.
-*   `make run-hello-spark-4.1.0`: Run the application on the standard Spark 4.1.0 cluster.
+### Other commands
+*   `make down`: Stop the services.
+*   `make logs`: View the logs from all services.
+*   `make build`: Build the docker images.
+*   `make clean`: Stop and remove all containers, volumes, and images associated with the project.

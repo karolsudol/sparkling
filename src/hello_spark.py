@@ -1,19 +1,13 @@
-
 import os
 from pyspark.sql import SparkSession
 
 # Get the Spark master URL from an environment variable
-spark_master_url = os.environ.get("SPARK_MASTER_URL")
-if not spark_master_url:
-    print("Error: SPARK_MASTER_URL environment variable not set.")
-    print("Please set it to the URL of your Spark master.")
-    exit(1)
+spark_master_url = os.environ.get("SPARK_MASTER_URL", "spark://spark-master:7077")
 app_name = os.environ.get("SPARK_APP_NAME", "PySparkHelloWorld")
 
 def main():
     """
-    A simple PySpark hello world application that can be pointed
-    at different Spark clusters via an environment variable.
+    A simple PySpark hello world application.
     """
     print("="*50)
     print(f"SPARK_APP_NAME: {app_name}")
@@ -39,7 +33,7 @@ def main():
         df.show()
 
         # Perform a simple operation
-        df_filtered = df.filter(df.id >= 3)
+        df_filtered = df.filter(df["id"] >= 3)
         print("DataFrame after filtering (id >= 3):")
         df_filtered.show()
 
