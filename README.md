@@ -1,6 +1,6 @@
-# Sparkling 🥂
+# Sparkling 🥂🥂🥂
 
-A modern Spark 4.1.1 development environment featuring **Spark Connect** and **Spark Declarative Pipelines (SDP)**.
+A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark Declarative Pipelines (SDP)**.
 
 ## Features
 - **Spark 4.1.1**: Official Apache Spark environment.
@@ -11,14 +11,11 @@ A modern Spark 4.1.1 development environment featuring **Spark Connect** and **S
 - **Shared Warehouse**: Persistent data storage accessible across the entire cluster.
 
 ## Architecture
-- **Spark Connect (`spark-connect`)**: The gRPC gateway that receives and optimizes query plans.
-- **Master (`spark-master`)**: The central orchestrator for resource allocation.
+- **Spark Connect (`spark-connect`)**: The permanent server-side gateway. It hosts the **Spark Driver**, optimizes query plans, and manages the session.
+- **Master (`spark-master`)**: The central orchestrator for cluster resource allocation.
 - **Worker (`spark-worker`)**: The computational engine that executes tasks.
-- **Driver (`spark-app`)**: A flexible client container used to submit pipelines or standard scripts.
+- **Client (`spark-app`)**: A short-lived container used to submit pipeline definitions and execute application code. It communicates with the server via gRPC.
 
-## Prerequisites
-- Docker and Docker Compose
-- `make`
 
 ## Available Commands
 
@@ -30,7 +27,6 @@ A modern Spark 4.1.1 development environment featuring **Spark Connect** and **S
 
 ### Running Applications
 - `make run`: Execute the default **SDP Pipeline** defined in `spark-pipeline.yml`.
-- `make run-app APP=src/hello_spark.py`: Run a **standard PySpark script** via Spark Connect.
 
 ### Utility
 - `make logs`: Follow container logs.
@@ -42,7 +38,7 @@ A modern Spark 4.1.1 development environment featuring **Spark Connect** and **S
 - **Spark Connect**: `sc://localhost:15002`
 
 ## Project Structure
-- `src/`: Your Python source code and SDP flow definitions.
+- `src/`: Python source code and SDP flow definitions.
 - `spark-pipeline.yml`: Configuration for Declarative Pipelines.
 - `spark-warehouse/`: Local directory where Materialized Views are persisted as Parquet files.
 - `checkpoints/`: Storage for streaming and pipeline metadata.
