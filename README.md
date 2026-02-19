@@ -43,6 +43,7 @@ make run
 
 ## Available Commands
 - `make up`: Build and start the cluster.
+- `make start`: Start existing containers (fast).
 - `make run`: Run the default `hello_spark.py`.
 - `make run APP=script.py`: Run a specific script from the `src/` directory.
 - `make stop`: Stop the containers.

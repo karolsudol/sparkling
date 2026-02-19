@@ -1,8 +1,17 @@
-.PHONY: up stop clean run logs ps
+.PHONY: up start stop clean run logs ps
 
-# Start the cluster (Master + Worker)
+# Build and start the cluster
 up:
-	docker-compose up -d --build
+	docker-compose up -d --build spark-master spark-worker
+	@$(MAKE) urls
+
+# Start existing containers without rebuilding
+start:
+	docker-compose up -d spark-master spark-worker
+	@$(MAKE) urls
+
+# Display Spark Web UI URLs
+urls:
 	@echo "--------------------------------------------------"
 	@echo "Spark Master UI: http://localhost:8080"
 	@echo "Spark Worker UI: http://localhost:8081"
