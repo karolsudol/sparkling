@@ -18,6 +18,24 @@ A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark De
 - **Client (`spark-app`)**: A short-lived container used to submit pipeline definitions and execute application code.
 - **Iceberg Catalog**: Configured as `local`. Data is stored in `spark-warehouse/iceberg/`.
 
+## Execution Model
+```text
+   [ Client ]           (uv run, SDP CLI)
+       |
+    (gRPC)
+       |
+[ Spark Connect ]       (Session & Driver)
+       |
+[ Spark Master ]        (Cluster Scheduler)
+       |
+[ Spark Worker ]        (Task Execution)
+```
+
+- **Gateway**: `spark-connect` is a persistent gRPC gateway that manages the Spark Driver.
+- **Scheduling**: `spark-master` acts as the Standalone Cluster Manager, scheduling tasks across available `spark-worker` nodes.
+- **Session Isolation**: Every client connection (e.g., `uv run`) receives a unique, isolated **Spark Session**. The server remains "always on," but sessions are not shared between apps.
+- **Shared Resources**: All sessions share the underlying cluster hardware and the persistent **Iceberg Catalog**.
+
 
 ## Apache Iceberg
 The project is configured with an Iceberg catalog named `local`. Tables created under this catalog benefit from snapshot isolation and time travel.
