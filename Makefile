@@ -1,4 +1,4 @@
-.PHONY: up start stop clean run pipeline verify clean-warehouse logs ps
+.PHONY: up start stop clean run pipeline verify clean-warehouse logs ps dbt-seed dbt-run fix-permissions cleanup-dbt chown-me
 
 # Build and start the cluster
 up:
@@ -26,6 +26,22 @@ stop:
 clean:
 	docker compose down -v --rmi local --remove-orphans
 
+# Fix permissions
+fix-permissions:
+	@echo "${BLUE}Fixing permissions...${END}"
+	@docker exec -u 0 spark-master chown -R 185:0 /app/dbt
+	@docker exec -u 0 spark-master chmod -R 775 /app/dbt
+
+# Chown back to user
+chown-me:
+	@echo "${BLUE}Reclaiming ownership...${END}"
+	@sudo chown -R $(USER):$(USER) dbt/
+
+# Deep cleanup
+cleanup-dbt:
+	@echo "${BLUE}Deep cleanup of dbt...${END}"
+	@docker exec -u 0 spark-master rm -rf /app/dbt/target /app/dbt/metastore_db /app/dbt/spark-warehouse /app/dbt/derby.log /app/dbt/logs
+
 # --- Pipeline Lifecycle Commands ---
 
 # 1. Remove old warehouse data
@@ -33,22 +49,28 @@ clean-warehouse:
 	@echo "${BLUE}Cleaning up old warehouse data...${END}"
 	@sudo rm -rf spark-warehouse/*
 
-# 2. Run the Declarative Pipeline (SDP)
-pipeline:
-	@echo "${BLUE}Running Declarative Pipeline (SDP)...${END}"
-	@docker compose run --rm -e SPARK_APP_TYPE=sdp -e SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml spark-app
+# 2. Setup namespaces
+setup-namespaces:
+	@echo "${BLUE}Setting up namespaces...${END}"
+	@docker exec spark-master python3 /app/src/setup_namespaces.py
 
-# 3. Run the Verification Script
+# 3. dbt Seed
+dbt-seed:
+	@echo "${BLUE}Running dbt seed...${END}"
+	@docker exec -w /app/dbt spark-master dbt seed --profiles-dir .
+
+# 4. dbt Run
+dbt-run:
+	@echo "${BLUE}Running dbt pipeline...${END}"
+	@docker exec -w /app/dbt spark-master dbt run --profiles-dir .
+
+# 5. Run the Verification Script
 verify:
 	@echo "${BLUE}Running Verification...${END}"
-	@docker compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/src/verify.py spark-app
+	@docker exec spark-master python3 /app/src/verify.py
 
-# Consolidated Run: Clean -> Pipeline -> Verify
-run: clean-warehouse pipeline verify
-
-# Run a specific script
-run-app:
-	docker compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/$(or $(APP),src/verify.py) spark-app
+# Consolidated Run: Fix -> Clean -> Namespaces -> Seed -> dbt
+run: fix-permissions clean-warehouse setup-namespaces dbt-seed dbt-run verify
 
 # Helpers for colors
 BLUE=\033[94m

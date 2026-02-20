@@ -8,10 +8,12 @@ services:
     hostname: spark-master
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
     ports:
-      - "8080:8080"   # Spark Master Web UI
-      - "7077:7077"   # Spark Master port
+      - "8080:8080"
+      - "7077:7077"
     volumes:
       - ./spark-warehouse:/app/spark-warehouse
+      - ./src:/app/src
+      - ./dbt:/app/dbt
     networks:
       - spark-network
     healthcheck:
@@ -28,9 +30,11 @@ services:
       - spark-master
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
     ports:
-      - "8081:8081"   # Spark Worker Web UI
+      - "8081:8081"
     volumes:
       - ./spark-warehouse:/app/spark-warehouse
+      - ./src:/app/src
+      - ./dbt:/app/dbt
     networks:
       - spark-network
 
@@ -42,7 +46,7 @@ services:
       spark-master:
         condition: service_healthy
     ports:
-      - "15002:15002" # Spark Connect gRPC port
+      - "15002:15002"
     command: >
       /opt/spark/bin/spark-submit
       --master spark://spark-master:7077
@@ -51,9 +55,9 @@ services:
       --conf spark.driver.bindAddress=0.0.0.0
       --conf spark.sql.warehouse.dir=file:///app/spark-warehouse
       --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
-      --conf spark.sql.catalog.local=org.apache.iceberg.spark.SparkCatalog
-      --conf spark.sql.catalog.local.type=hadoop
-      --conf spark.sql.catalog.local.warehouse=file:///app/spark-warehouse/iceberg
+      --conf spark.sql.catalog.spark_catalog=org.apache.iceberg.spark.SparkCatalog
+      --conf spark.sql.catalog.spark_catalog.type=hadoop
+      --conf spark.sql.catalog.spark_catalog.warehouse=file:///app/spark-warehouse/iceberg
       --conf spark.sql.iceberg.vectorization.enabled=false
       --class org.apache.spark.sql.connect.service.SparkConnectServer
       /opt/spark/external/spark-connect-assembly_2.13-4.1.1.jar
@@ -86,6 +90,7 @@ services:
       "
     volumes:
       - ./src:/app/src
+      - ./dbt:/app/dbt
       - ./checkpoints:/checkpoints
       - ./spark-warehouse:/app/spark-warehouse
       - ./spark-pipeline.yml:/app/spark-pipeline.yml
