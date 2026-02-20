@@ -1,9 +1,9 @@
 # --- CATALOG & NAMESPACES ---
-CATALOG = "local"
-RAW = f"{CATALOG}.raw"     # Source data
-STG = f"{CATALOG}.stg"     # Staging: Type casting, renaming
-DW  = f"{CATALOG}.dw"      # Data Warehouse: Facts and Dimensions
-MRT = f"{CATALOG}.mrt"     # Marts: Final aggregates
+# We use the default spark_catalog (configured as Iceberg)
+RAW = "raw"     # Source data
+STG = "stg"     # Staging: Type casting, renaming
+DW  = "dw"      # Data Warehouse: Facts and Dimensions
+MRT = "mrt"     # Marts: Final aggregates
 
 # --- TABLE NAMES ---
 # Source -> Staging -> Fact -> Mart

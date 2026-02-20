@@ -11,3 +11,12 @@ hs_err_pid*
 # Spark Data and Metadata
 spark-warehouse/
 checkpoints/
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/metastore_db/
+dbt/.user.yml
+dbt_modules/
+profiles.yml
