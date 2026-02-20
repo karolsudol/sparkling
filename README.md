@@ -1,26 +1,26 @@
 # Sparkling 🥂🥂🥂
 
-A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark Declarative Pipelines (SDP)**.
+A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and **Spark Declarative Pipelines (SDP)**.
 
 ## Features
 - **Spark 4.1.1**: Official Apache Spark environment.
 - **Spark Connect**: Decoupled client-server architecture using gRPC (`sc://localhost:15002`).
-- **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `spark-pipelines` CLI.
-- **Apache Iceberg**: High-performance table format for huge analytical datasets with Time Travel and Snapshot Isolation.
-- **UV Powered**: High-performance Python package management included.
-- **Colored Logs**: Enhanced readability for both system and application logs.
-- **Shared Warehouse**: Persistent data storage accessible across the entire cluster.
+- **dbt-spark**: SQL-based transformations using the `session` method (Spark Connect).
+- **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view`.
+- **Apache Iceberg**: High-performance table format with Snapshot Isolation.
+- **UV Powered**: High-performance Python package management.
+- **Shared Warehouse**: Persistent data storage across the entire cluster.
 
 ## Architecture
-- **Spark Connect (`spark-connect`)**: The permanent server-side gateway. It hosts the **Spark Driver**, optimizes query plans, and manages the session.
-- **Master (`spark-master`)**: The central orchestrator for cluster resource allocation.
+- **Spark Connect (`spark-connect`)**: The permanent gateway. It manages the **Spark Driver** and logical query plans.
+- **Master (`spark-master`)**: The central orchestrator for resource allocation.
 - **Worker (`spark-worker`)**: The computational engine that executes tasks.
-- **Client (`spark-app`)**: A short-lived container used to submit pipeline definitions and execute application code.
-- **Iceberg Catalog**: Configured as `local`. Data is stored in `spark-warehouse/iceberg/`.
+- **dbt Engine**: Executed inside the cluster containers to leverage pre-configured Iceberg JARs and gRPC connectivity.
+- **Iceberg Catalog**: Configured as `spark_catalog`. Data is stored in `spark-warehouse/iceberg/`.
 
 ## Execution Model
 ```text
-   [ Client ]           (uv run, SDP CLI)
+   [ Client ]           (uv run, dbt, SDP CLI)
        |
     (gRPC)
        |
@@ -32,9 +32,29 @@ A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark De
 ```
 
 - **Gateway**: `spark-connect` is a persistent gRPC gateway that manages the Spark Driver.
-- **Scheduling**: `spark-master` acts as the Standalone Cluster Manager, scheduling tasks across available `spark-worker` nodes.
-- **Session Isolation**: Every client connection (e.g., `uv run`) receives a unique, isolated **Spark Session**. The server remains "always on," but sessions are not shared between apps.
-- **Shared Resources**: All sessions share the underlying cluster hardware and the persistent **Iceberg Catalog**.
+- **Scheduling**: `spark-master` acts as the Standalone Cluster Manager.
+- **Session Isolation**: Every client connection (including every dbt model run) receives a unique, isolated **Spark Session**. 
+- **Persistence**: Iceberg metadata is persisted in the shared warehouse, ensuring tables created in one session are visible to the next.
+
+## Available Commands
+
+### Cluster Lifecycle
+- `make up`: Build and start the entire cluster.
+- `make clean`: Deep clean (removes containers, volumes, and built images).
+
+### Running Pipelines
+- `make run`: The full automated sequence:
+    1.  **Fix Permissions**: Ensures Docker can write to local `dbt/` folders.
+    2.  **Clean Warehouse**: Wipes old Iceberg data.
+    3.  **Setup Namespaces**: Re-creates `raw`, `stg`, `dw`, `mrt`.
+    4.  **dbt Seed**: Loads CSV data into the cluster.
+    5.  **dbt Run**: Executes the transformation pipeline.
+    6.  **Verify**: Runs a Python script to check results.
+
+### dbt Specifics
+- `make dbt-seed`: Run only dbt seeds.
+- `make dbt-run`: Execute dbt transformations.
+- `make fix-permissions`: Use this if you hit `Permission Denied` in the `dbt/` folder.
 
 
 ## Apache Iceberg
