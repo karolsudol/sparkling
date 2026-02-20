@@ -6,6 +6,7 @@ A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark De
 - **Spark 4.1.1**: Official Apache Spark environment.
 - **Spark Connect**: Decoupled client-server architecture using gRPC (`sc://localhost:15002`).
 - **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `spark-pipelines` CLI.
+- **Apache Iceberg**: High-performance table format for huge analytical datasets with Time Travel and Snapshot Isolation.
 - **UV Powered**: High-performance Python package management included.
 - **Colored Logs**: Enhanced readability for both system and application logs.
 - **Shared Warehouse**: Persistent data storage accessible across the entire cluster.
@@ -14,8 +15,63 @@ A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark De
 - **Spark Connect (`spark-connect`)**: The permanent server-side gateway. It hosts the **Spark Driver**, optimizes query plans, and manages the session.
 - **Master (`spark-master`)**: The central orchestrator for cluster resource allocation.
 - **Worker (`spark-worker`)**: The computational engine that executes tasks.
-- **Client (`spark-app`)**: A short-lived container used to submit pipeline definitions and execute application code. It communicates with the server via gRPC.
+- **Client (`spark-app`)**: A short-lived container used to submit pipeline definitions and execute application code.
+- **Iceberg Catalog**: Configured as `local`. Data is stored in `spark-warehouse/iceberg/`.
 
+## Execution Model
+```text
+   [ Client ]           (uv run, SDP CLI)
+       |
+    (gRPC)
+       |
+[ Spark Connect ]       (Session & Driver)
+       |
+[ Spark Master ]        (Cluster Scheduler)
+       |
+[ Spark Worker ]        (Task Execution)
+```
+
+- **Gateway**: `spark-connect` is a persistent gRPC gateway that manages the Spark Driver.
+- **Scheduling**: `spark-master` acts as the Standalone Cluster Manager, scheduling tasks across available `spark-worker` nodes.
+- **Session Isolation**: Every client connection (e.g., `uv run`) receives a unique, isolated **Spark Session**. The server remains "always on," but sessions are not shared between apps.
+- **Shared Resources**: All sessions share the underlying cluster hardware and the persistent **Iceberg Catalog**.
+
+
+## Apache Iceberg
+The project is configured with an Iceberg catalog named `local`. Tables created under this catalog benefit from snapshot isolation and time travel.
+
+## Data Architecture
+The pipeline follows a multi-layered Medallion-style architecture within the `local` Iceberg catalog, as defined in `src/assets.py`.
+
+### Layers
+| Layer | Namespace | Description |
+|---|---|---|
+| **Raw** | `local.raw` | Immutable source data landing zone. |
+| **Staging** | `local.stg` | Cleaned data with consistent types and naming. |
+| **Warehouse** | `local.dw` | Modeled facts and dimensions (Data Warehouse). |
+| **Marts** | `local.mrt` | Business-ready aggregates and final outputs. |
+
+### Data Flow
+```text
+[ Raw ]             [ Staging ]         [ Warehouse ]       [ Marts ]
+source_numbers  -->  stg_numbers  -->  fct_filtered_evens  -->  mrt_final_stats
+(local.raw)         (local.stg)         (local.dw)          (local.mrt)
+```
+
+### Usage in SDP
+To create an Iceberg table, use the `local.` prefix in your view name:
+```python
+@dp.materialized_view(name="local.default.my_table")
+def create_data():
+    ...
+```
+
+### Inspecting History
+You can query Iceberg metadata directly:
+```sql
+SELECT * FROM local.default.my_table.snapshots;
+SELECT * FROM local.default.my_table.history;
+```
 
 ## Available Commands
 
@@ -42,3 +98,23 @@ A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark De
 - `spark-pipeline.yml`: Configuration for Declarative Pipelines.
 - `spark-warehouse/`: Local directory where Materialized Views are persisted as Parquet files.
 - `checkpoints/`: Storage for streaming and pipeline metadata.
+
+## Local Development (VS Code / IDE)
+To resolve import errors (like `pyspark` not found) in your IDE, create a local virtual environment:
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+```
+
+Then, select the `.venv/bin/python` interpreter in your IDE settings.
+
+### Running Scripts Locally
+You can execute scripts on your host machine while the heavy lifting happens on the Docker cluster:
+
+```bash
+uv run src/verify.py
+```
+
+The scripts are configured to automatically detect if they are running locally and will connect to the Spark Connect endpoint at `sc://localhost:15002`.

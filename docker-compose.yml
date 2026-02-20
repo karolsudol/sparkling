@@ -50,6 +50,11 @@ services:
       --conf spark.driver.port=15003
       --conf spark.driver.bindAddress=0.0.0.0
       --conf spark.sql.warehouse.dir=file:///app/spark-warehouse
+      --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
+      --conf spark.sql.catalog.local=org.apache.iceberg.spark.SparkCatalog
+      --conf spark.sql.catalog.local.type=hadoop
+      --conf spark.sql.catalog.local.warehouse=file:///app/spark-warehouse/iceberg
+      --conf spark.sql.iceberg.vectorization.enabled=false
       --class org.apache.spark.sql.connect.service.SparkConnectServer
       /opt/spark/external/spark-connect-assembly_2.13-4.1.1.jar
     volumes:
@@ -61,6 +66,7 @@ services:
     image: spark-4.1.1-uv:latest
     container_name: spark-app
     hostname: spark-app
+    working_dir: /app
     depends_on:
       spark-master:
         condition: service_healthy
@@ -68,14 +74,14 @@ services:
       - SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml
       - SPARK_REMOTE=sc://spark-connect:15002
       - SPARK_APP_TYPE=sdp
+      - IVY_HOME=/tmp/.ivy2
+      - PYTHONPATH=/app/src
     command: >
       /bin/bash -c "
       if [ \"$${SPARK_APP_TYPE}\" == \"sdp\" ]; then
-        /usr/local/bin/spark-pipelines run \
-          --spec $${SPARK_APPLICATION_SCRIPT} \
-          --conf spark.sql.warehouse.dir=file:///app/spark-warehouse
+        spark-pipelines run --spec $${SPARK_APPLICATION_SCRIPT} --conf spark.sql.warehouse.dir=file:///app/spark-warehouse;
       else
-        python3 $${SPARK_APPLICATION_SCRIPT}
+        python3 $${SPARK_APPLICATION_SCRIPT};
       fi
       "
     volumes:
