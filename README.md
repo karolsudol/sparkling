@@ -73,3 +73,12 @@ uv pip install -r requirements.txt
 ```
 
 Then, select the `.venv/bin/python` interpreter in your IDE settings.
+
+### Running Scripts Locally
+You can execute scripts on your host machine while the heavy lifting happens on the Docker cluster:
+
+```bash
+uv run src/verify.py
+```
+
+The scripts are configured to automatically detect if they are running locally and will connect to the Spark Connect endpoint at `sc://localhost:15002`.

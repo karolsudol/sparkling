@@ -29,14 +29,22 @@ def verify_pipeline_results(spark):
             logger.error(f"Table {t} could not be read: {e}")
 
 def main():
-    # Note: The Spark Connect server already has the config, 
-    # but we can specify the app name here.
-    spark = SparkSession.builder.appName("IcebergVerifier").getOrCreate()
+    import os
+    # Check if we are running inside Docker or locally
+    remote_url = os.getenv("SPARK_REMOTE", "sc://localhost:15002")
     
-    verify_pipeline_results(spark)
+    logger.info(f"Connecting to Spark Connect at: {remote_url}")
     
-    logger.info(f"{Colors.BOLD}Verification Complete! 🥂{Colors.END}")
-    spark.stop()
+    spark = SparkSession.builder \
+        .appName("IcebergVerifier") \
+        .remote(remote_url) \
+        .getOrCreate()
+    
+    try:
+        verify_pipeline_results(spark)
+    finally:
+        logger.info(f"{Colors.BOLD}Verification Complete! 🥂{Colors.END}")
+        spark.stop()
 
 if __name__ == "__main__":
     main()
