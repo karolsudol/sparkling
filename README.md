@@ -6,6 +6,7 @@ A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark De
 - **Spark 4.1.1**: Official Apache Spark environment.
 - **Spark Connect**: Decoupled client-server architecture using gRPC (`sc://localhost:15002`).
 - **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `spark-pipelines` CLI.
+- **Apache Iceberg**: High-performance table format for huge analytical datasets with Time Travel and Snapshot Isolation.
 - **UV Powered**: High-performance Python package management included.
 - **Colored Logs**: Enhanced readability for both system and application logs.
 - **Shared Warehouse**: Persistent data storage accessible across the entire cluster.
@@ -14,8 +15,27 @@ A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark De
 - **Spark Connect (`spark-connect`)**: The permanent server-side gateway. It hosts the **Spark Driver**, optimizes query plans, and manages the session.
 - **Master (`spark-master`)**: The central orchestrator for cluster resource allocation.
 - **Worker (`spark-worker`)**: The computational engine that executes tasks.
-- **Client (`spark-app`)**: A short-lived container used to submit pipeline definitions and execute application code. It communicates with the server via gRPC.
+- **Client (`spark-app`)**: A short-lived container used to submit pipeline definitions and execute application code.
+- **Iceberg Catalog**: Configured as `local`. Data is stored in `spark-warehouse/iceberg/`.
 
+
+## Apache Iceberg
+The project is configured with an Iceberg catalog named `local`. Tables created under this catalog benefit from snapshot isolation and time travel.
+
+### Usage in SDP
+To create an Iceberg table, use the `local.` prefix in your view name:
+```python
+@dp.materialized_view(name="local.default.my_table")
+def create_data():
+    ...
+```
+
+### Inspecting History
+You can query Iceberg metadata directly:
+```sql
+SELECT * FROM local.default.my_table.snapshots;
+SELECT * FROM local.default.my_table.history;
+```
 
 ## Available Commands
 

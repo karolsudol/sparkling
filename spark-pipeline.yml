@@ -6,3 +6,6 @@ storage: file:///checkpoints
 database: default
 configuration:
   spark.sql.shuffle.partitions: "2"
+  spark.sql.catalog.local: "org.apache.iceberg.spark.SparkCatalog"
+  spark.sql.catalog.local.type: "hadoop"
+  spark.sql.catalog.local.warehouse: "file:///app/spark-warehouse/iceberg"

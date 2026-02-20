@@ -5,18 +5,33 @@ from utils import get_logger, Colors
 logger = get_logger("Verify")
 
 def verify_pipeline_results(spark):
-    logger.info("--- VERIFYING PIPELINE RESULTS ---")
-    tables = ["source_numbers", "filtered_evens", "final_stats"]
+    logger.info("--- VERIFYING ICEBERG PIPELINE RESULTS ---")
+    
+    # We now use the full catalog name
+    tables = [
+        "local.default.source_numbers", 
+        "local.default.filtered_evens", 
+        "local.default.final_stats"
+    ]
+    
     for t in tables:
-        logger.info(f"Checking Materialized View: {t}")
+        logger.info(f"Checking Iceberg Table: {t}")
         try:
-            df = spark.read.parquet(f"/app/spark-warehouse/{t}")
+            # For Iceberg, we always use spark.table() to benefit from the catalog
+            df = spark.table(t)
             df.show(5)
+            
+            # Bonus: Let's show Iceberg snapshots to prove it's working!
+            logger.info(f"Recent snapshots for {t}:")
+            spark.sql(f"SELECT snapshot_id, committed_at, operation FROM local.default.{t.split('.')[-1]}.snapshots").show(1, truncate=False)
+            
         except Exception as e:
             logger.error(f"Table {t} could not be read: {e}")
 
 def main():
-    spark = SparkSession.builder.appName("PipelineVerifier").getOrCreate()
+    # Note: The Spark Connect server already has the config, 
+    # but we can specify the app name here.
+    spark = SparkSession.builder.appName("IcebergVerifier").getOrCreate()
     
     verify_pipeline_results(spark)
     

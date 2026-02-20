@@ -14,6 +14,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 COPY requirements.txt .
 RUN uv pip install --system -r requirements.txt
 
+# Download Iceberg Runtime Jar
+RUN curl -s https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runtime-4.0_2.13/1.10.1/iceberg-spark-runtime-4.0_2.13-1.10.1.jar \
+    -o /opt/spark/jars/iceberg-spark-runtime-4.0_2.13-1.10.1.jar
+
 # Copy custom log4j configuration for colored logs
 COPY log4j2.properties /opt/spark/conf/log4j2.properties
 
