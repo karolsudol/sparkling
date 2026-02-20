@@ -42,3 +42,14 @@ A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark De
 - `spark-pipeline.yml`: Configuration for Declarative Pipelines.
 - `spark-warehouse/`: Local directory where Materialized Views are persisted as Parquet files.
 - `checkpoints/`: Storage for streaming and pipeline metadata.
+
+## Local Development (VS Code / IDE)
+To resolve import errors (like `pyspark` not found) in your IDE, create a local virtual environment:
+
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+```
+
+Then, select the `.venv/bin/python` interpreter in your IDE settings.

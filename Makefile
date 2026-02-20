@@ -32,12 +32,12 @@ run:
 	@sudo rm -rf spark-warehouse/*
 	@echo "${BLUE}Running Declarative Pipeline (SDP)...${END}"
 	@docker-compose run --rm -e SPARK_APP_TYPE=sdp -e SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml spark-app
-	@echo "${BLUE}Running Masterclass Demo & Verification...${END}"
-	@docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/src/masterclass.py spark-app
+	@echo "${BLUE}Running Verification...${END}"
+	@docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/src/verify.py spark-app
 
 # Run a specific script
 run-app:
-	docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/$(or $(APP),src/masterclass.py) spark-app
+	docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/$(or $(APP),src/verify.py) spark-app
 
 # Helpers for colors
 BLUE=\033[94m

@@ -3,7 +3,7 @@ from pyspark.sql import SparkSession
 from utils import get_logger, Colors
 
 # Get our Spark-style logger
-logger = get_logger("Masterclass")
+logger = get_logger("Verify")
 
 def demo_lazy_evaluation(spark):
     logger.info("--- CONCEPT 1: LAZY EVALUATION ---")
@@ -33,12 +33,12 @@ def verify_pipeline_results(spark):
             logger.error(f"Table {t} could not be read: {e}")
 
 def main():
-    spark = SparkSession.builder.appName("SparkMasterclass").getOrCreate()
+    spark = SparkSession.builder.appName("PipelineVerifier").getOrCreate()
     
     demo_lazy_evaluation(spark)
     verify_pipeline_results(spark)
     
-    logger.info(f"{Colors.BOLD}Masterclass Complete! 🥂{Colors.END}")
+    logger.info(f"{Colors.BOLD}Verification Complete! 🥂{Colors.END}")
     spark.stop()
 
 if __name__ == "__main__":
