@@ -1,4 +1,4 @@
-.PHONY: up start stop clean run logs ps
+.PHONY: up start stop clean run pipeline verify clean-warehouse logs ps
 
 # Build and start the cluster
 up:
@@ -26,14 +26,25 @@ stop:
 clean:
 	docker-compose down -v --rmi local --remove-orphans
 
-# Consolidated Run: Clean -> Pipeline -> Verify
-run:
+# --- Pipeline Lifecycle Commands ---
+
+# 1. Remove old warehouse data
+clean-warehouse:
 	@echo "${BLUE}Cleaning up old warehouse data...${END}"
 	@sudo rm -rf spark-warehouse/*
+
+# 2. Run the Declarative Pipeline (SDP)
+pipeline:
 	@echo "${BLUE}Running Declarative Pipeline (SDP)...${END}"
 	@docker-compose run --rm -e SPARK_APP_TYPE=sdp -e SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml spark-app
+
+# 3. Run the Verification Script
+verify:
 	@echo "${BLUE}Running Verification...${END}"
 	@docker-compose run --rm -e SPARK_APP_TYPE=submit -e SPARK_APPLICATION_SCRIPT=/app/src/verify.py spark-app
+
+# Consolidated Run: Clean -> Pipeline -> Verify
+run: clean-warehouse pipeline verify
 
 # Run a specific script
 run-app:
