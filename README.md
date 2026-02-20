@@ -22,6 +22,24 @@ A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark De
 ## Apache Iceberg
 The project is configured with an Iceberg catalog named `local`. Tables created under this catalog benefit from snapshot isolation and time travel.
 
+## Data Architecture
+The pipeline follows a multi-layered Medallion-style architecture within the `local` Iceberg catalog, as defined in `src/assets.py`.
+
+### Layers
+| Layer | Namespace | Description |
+|---|---|---|
+| **Raw** | `local.raw` | Immutable source data landing zone. |
+| **Staging** | `local.stg` | Cleaned data with consistent types and naming. |
+| **Warehouse** | `local.dw` | Modeled facts and dimensions (Data Warehouse). |
+| **Marts** | `local.mrt` | Business-ready aggregates and final outputs. |
+
+### Data Flow
+```text
+[ Raw ]             [ Staging ]         [ Warehouse ]       [ Marts ]
+source_numbers  -->  stg_numbers  -->  fct_filtered_evens  -->  mrt_final_stats
+(local.raw)         (local.stg)         (local.dw)          (local.mrt)
+```
+
 ### Usage in SDP
 To create an Iceberg table, use the `local.` prefix in your view name:
 ```python

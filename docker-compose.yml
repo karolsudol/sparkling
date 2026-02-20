@@ -75,6 +75,7 @@ services:
       - SPARK_REMOTE=sc://spark-connect:15002
       - SPARK_APP_TYPE=sdp
       - IVY_HOME=/tmp/.ivy2
+      - PYTHONPATH=/app/src
     command: >
       /bin/bash -c "
       if [ \"$${SPARK_APP_TYPE}\" == \"sdp\" ]; then
