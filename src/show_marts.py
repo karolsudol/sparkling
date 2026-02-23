@@ -9,8 +9,8 @@ def show_final_stats(spark):
     logger.info(f"{Colors.BOLD}--- FINAL USER STATISTICS (MRT LAYER) ---{Colors.END}")
 
     try:
-        # Load the final mart table
-        df = spark.table("mrt.mrt_user_stats")
+        # Load the final mart table using fully qualified name
+        df = spark.table("spark_catalog.mrt.mrt_user_stats")
 
         # Sort by total_spent to make it interesting
         df_sorted = df.orderBy("total_spent", ascending=False)

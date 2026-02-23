@@ -71,6 +71,7 @@ To initialize these tools, run `make setup`.
 - `make ingest-transactions`: Run the Spark SDP pipeline to incrementally load CSV into `raw`.
 - `make transform-transactions`: Run dbt transformations (`stg` -> `dw` -> `mrt`) incrementally.
 - `make show-marts`: View the final user statistics directly from your host.
+- `make show-marts-docker`: View the final user statistics from within the Spark cluster.
 
 ### Cluster Lifecycle
 - `make up`: Build and start the entire cluster.

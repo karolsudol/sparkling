@@ -35,15 +35,20 @@ transform-transactions:
 
 # Show final marts data (runs locally via uv)
 show-marts:
-	@echo "${BLUE}Fetching final stats...${END}"
+	@echo "${BLUE}Fetching final stats (local)...${END}"
 	@uv run src/show_marts.py
+
+# Show final marts data (runs inside docker)
+show-marts-docker:
+	@echo "${BLUE}Fetching final stats (docker)...${END}"
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/show_marts.py
 
 run-transactions: lint fix-permissions clean-warehouse setup-namespaces
 	@$(MAKE) generate-transactions
 	@$(MAKE) fix-permissions
 	@$(MAKE) ingest-transactions
 	@$(MAKE) transform-transactions
-	@$(MAKE) show-marts
+	@$(MAKE) show-marts-docker
 
 # --- Infrastructure ---
 
