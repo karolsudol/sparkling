@@ -1,67 +1,107 @@
 # Sparkling 🥂🥂🥂
 
-A Spark 4.1.1 development environment featuring **Spark Connect** and **Spark Declarative Pipelines (SDP)**.
+A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and **Spark Declarative Pipelines (SDP)**.
 
 ## Features
 - **Spark 4.1.1**: Official Apache Spark environment.
 - **Spark Connect**: Decoupled client-server architecture using gRPC (`sc://localhost:15002`).
-- **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `spark-pipelines` CLI.
-- **Apache Iceberg**: High-performance table format for huge analytical datasets with Time Travel and Snapshot Isolation.
-- **UV Powered**: High-performance Python package management included.
-- **Colored Logs**: Enhanced readability for both system and application logs.
-- **Shared Warehouse**: Persistent data storage accessible across the entire cluster.
+- **dbt-spark**: SQL-based transformations using the `session` method (Spark Connect).
+- **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view`.
+- **Apache Iceberg**: High-performance table format using the **REST Catalog** for centralized metadata management.
+- **UV Powered**: High-performance Python package management.
+- **Shared Warehouse**: Persistent data storage across the entire cluster.
+- **Code Quality**: Pre-configured **Ruff** (Python) and **sqlfmt** (SQL) for consistent styling.
+
+## Getting Started
+
+1. **Clone the repository**
+2. **Setup Environment**:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` if you need to change any default ports or paths.
+3. **Initialize the project**:
+   ```bash
+   make setup
+   ```
+   This will install dependencies and set up pre-commit hooks.
 
 ## Architecture
-- **Spark Connect (`spark-connect`)**: The permanent server-side gateway. It hosts the **Spark Driver**, optimizes query plans, and manages the session.
-- **Master (`spark-master`)**: The central orchestrator for cluster resource allocation.
+- **Iceberg REST Catalog (`iceberg-rest`)**: The central metadata service. All tools (Spark, dbt) talk to this service to discover tables.
+- **Spark Connect (`spark-connect`)**: The permanent gateway. It manages the **Spark Driver** and logical query plans.
+- **Master (`spark-master`)**: The central orchestrator for resource allocation.
 - **Worker (`spark-worker`)**: The computational engine that executes tasks.
-- **Client (`spark-app`)**: A short-lived container used to submit pipeline definitions and execute application code.
-- **Iceberg Catalog**: Configured as `local`. Data is stored in `spark-warehouse/iceberg/`.
+- **dbt Engine**: Executed inside the cluster containers to leverage pre-configured Iceberg JARs and gRPC connectivity.
+- **Warehouse**: Data is stored in `spark-warehouse/iceberg/`.
 
-## Execution Model
-```text
-   [ Client ]           (uv run, SDP CLI)
-       |
-    (gRPC)
-       |
-[ Spark Connect ]       (Session & Driver)
-       |
-[ Spark Master ]        (Cluster Scheduler)
-       |
-[ Spark Worker ]        (Task Execution)
+## Dependencies
+This project uses two ways to manage dependencies:
+1. **`pyproject.toml`**: The primary source of truth for **local development**. It is used by `uv` to manage the virtual environment and tools like `ruff`.
+2. **`requirements.txt`**: Used by **Docker** during the build phase (`Dockerfile.spark`) to install packages inside the cluster.
+
+Always ensure both files are kept in sync when adding new libraries.
+
+## Code Quality
+The project uses automated tools to ensure consistent code style and quality:
+- **Ruff**: An extremely fast Python linter and formatter.
+- **sqlfmt**: A formatter for dbt SQL models.
+- **Pre-commit**: Hooks that automatically run these tools before every commit.
+
+To initialize these tools, run:
+```bash
+make setup
 ```
 
-- **Gateway**: `spark-connect` is a persistent gRPC gateway that manages the Spark Driver.
-- **Scheduling**: `spark-master` acts as the Standalone Cluster Manager, scheduling tasks across available `spark-worker` nodes.
-- **Session Isolation**: Every client connection (e.g., `uv run`) receives a unique, isolated **Spark Session**. The server remains "always on," but sessions are not shared between apps.
-- **Shared Resources**: All sessions share the underlying cluster hardware and the persistent **Iceberg Catalog**.
+## Available Commands
+
+### Environment Setup
+- `make setup`: Install dependencies and initialize pre-commit hooks.
+- `make lint`: Manually run all linters and formatters.
+
+### Cluster Lifecycle
+- `make up`: Build and start the entire cluster.
+- `make clean`: Deep clean (removes containers, volumes, and built images).
+
+### Running Pipelines
+- `make run`: The full automated sequence:
+    1.  **Lint**: Checks code formatting and quality.
+    2.  **Fix Permissions**: Ensures Docker can write to local `dbt/` folders.
+    3.  **Clean Warehouse**: Wipes old Iceberg data and resets catalog.
+    4.  **Setup Namespaces**: Re-creates `raw`, `stg`, `dw`, `mrt`.
+    5.  **dbt Seed**: Loads CSV data into the cluster.
+    6.  **dbt Run**: Executes the transformation pipeline.
+    7.  **Verify**: Runs a Python script to check results.
+### dbt Specifics
+- `make dbt-seed`: Run only dbt seeds.
+- `make dbt-run`: Execute dbt transformations.
+- `make fix-permissions`: Use this if you hit `Permission Denied` in the `dbt/` folder.
 
 
 ## Apache Iceberg
-The project is configured with an Iceberg catalog named `local`. Tables created under this catalog benefit from snapshot isolation and time travel.
+The project is configured with an Iceberg catalog named `spark_catalog`. Tables created under this catalog benefit from snapshot isolation and time travel.
 
 ## Data Architecture
-The pipeline follows a multi-layered Medallion-style architecture within the `local` Iceberg catalog, as defined in `src/assets.py`.
+The pipeline follows a multi-layered Medallion-style architecture within the `spark_catalog` Iceberg catalog, as defined in `src/assets.py`.
 
 ### Layers
 | Layer | Namespace | Description |
 |---|---|---|
-| **Raw** | `local.raw` | Immutable source data landing zone. |
-| **Staging** | `local.stg` | Cleaned data with consistent types and naming. |
-| **Warehouse** | `local.dw` | Modeled facts and dimensions (Data Warehouse). |
-| **Marts** | `local.mrt` | Business-ready aggregates and final outputs. |
+| **Raw** | `spark_catalog.raw` | Immutable source data landing zone. |
+| **Staging** | `spark_catalog.stg` | Cleaned data with consistent types and naming. |
+| **Warehouse** | `spark_catalog.dw` | Modeled facts and dimensions (Data Warehouse). |
+| **Marts** | `spark_catalog.mrt` | Business-ready aggregates and final outputs. |
 
 ### Data Flow
 ```text
 [ Raw ]             [ Staging ]         [ Warehouse ]       [ Marts ]
 source_numbers  -->  stg_numbers  -->  fct_filtered_evens  -->  mrt_final_stats
-(local.raw)         (local.stg)         (local.dw)          (local.mrt)
+(spark_catalog.raw) (spark_catalog.stg) (spark_catalog.dw)  (spark_catalog.mrt)
 ```
 
 ### Usage in SDP
-To create an Iceberg table, use the `local.` prefix in your view name:
+To create an Iceberg table, use the `spark_catalog.` prefix in your view name:
 ```python
-@dp.materialized_view(name="local.default.my_table")
+@dp.materialized_view(name="spark_catalog.default.my_table")
 def create_data():
     ...
 ```
@@ -69,8 +109,8 @@ def create_data():
 ### Inspecting History
 You can query Iceberg metadata directly:
 ```sql
-SELECT * FROM local.default.my_table.snapshots;
-SELECT * FROM local.default.my_table.history;
+SELECT * FROM spark_catalog.default.my_table.snapshots;
+SELECT * FROM spark_catalog.default.my_table.history;
 ```
 
 ## Available Commands

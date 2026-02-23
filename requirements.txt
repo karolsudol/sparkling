@@ -1,1 +1,6 @@
 pyspark[pipelines]==4.1.1
+pyiceberg
+dbt-spark[session]
+ruff
+pre-commit
+sqlfmt
