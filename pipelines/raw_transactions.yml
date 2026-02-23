@@ -1,7 +1,7 @@
 name: raw_transactions_pipeline
 libraries:
   - glob:
-      include: src/pipelines/transactions.py
+      include: "../src/pipelines/transactions.py"
 storage: file:///app/checkpoints/raw_transactions
 catalog: spark_catalog
 database: raw

@@ -21,7 +21,7 @@ source_schema = StructType(
 
 # 1. RAW Layer - Incremental Ingestion
 # We use a Streaming Table to process only new files dropped in /app/data/landing
-@dp.streaming_table(name="raw.transactions")
+@dp.table(name="raw.transactions")
 def ingest_raw():
     return (
         spark()

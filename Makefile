@@ -27,13 +27,13 @@ generate-transactions:
 
 ingest-transactions:
 	@echo "${BLUE}Ingesting Transactions to RAW...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-app spark-pipelines run --spec /app/pipelines/raw_transactions.yml
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-app spark-pipelines run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
 
 transform-transactions:
 	@echo "${BLUE}Transforming Transactions (STG -> MRT)...${END}"
-	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt run --select transactions user_stats --profiles-dir .
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt run --select "*transactions*" "*user_stats*" --profiles-dir .
 
-run-transactions: lint fix-permissions clean-warehouse
+run-transactions: lint fix-permissions clean-warehouse setup-namespaces
 	@$(MAKE) generate-transactions
 	@$(MAKE) fix-permissions
 	@$(MAKE) ingest-transactions
@@ -43,11 +43,11 @@ run-transactions: lint fix-permissions clean-warehouse
 # --- Infrastructure ---
 
 up:
-	docker compose up -d --build iceberg-rest spark-master spark-worker spark-connect
+	docker compose up -d --build iceberg-rest spark-master spark-worker spark-connect spark-app
 	@$(MAKE) urls
 
 start:
-	docker compose up -d iceberg-rest spark-master spark-worker spark-connect
+	docker compose up -d iceberg-rest spark-master spark-worker spark-connect spark-app
 	@$(MAKE) urls
 
 urls:
@@ -69,10 +69,12 @@ clean-warehouse:
 	@sudo rm -rf spark-warehouse/iceberg/
 	@sudo rm -rf checkpoints/*
 	@sudo rm -rf data/landing/*
-	@sudo mkdir -p spark-warehouse/iceberg/
+	@sudo mkdir -p spark-warehouse/iceberg/ checkpoints/ data/landing/
 	@sudo chmod -R 777 spark-warehouse/ checkpoints/ data/
-	@echo "${BLUE}Restarting Iceberg REST...${END}"
-	@docker compose restart iceberg-rest
+	@echo "${BLUE}Wiping Iceberg REST Catalog state...${END}"
+	@docker compose stop iceberg-rest
+	@docker compose rm -f iceberg-rest
+	@docker compose up -d iceberg-rest
 	@echo "${BLUE}Waiting for Iceberg REST to initialize...${END}"
 	@sleep 5
 

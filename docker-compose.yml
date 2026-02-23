@@ -15,6 +15,9 @@ services:
       - ./spark-warehouse:/app/spark-warehouse
       - ./src:/app/src
       - ./dbt:/app/dbt
+      - ./pipelines:/app/pipelines
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
     networks:
       - spark-network
     healthcheck:
@@ -37,6 +40,9 @@ services:
       - ./spark-warehouse:/app/spark-warehouse
       - ./src:/app/src
       - ./dbt:/app/dbt
+      - ./pipelines:/app/pipelines
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
     networks:
       - spark-network
 
@@ -70,6 +76,7 @@ services:
       /opt/spark/external/spark-connect-assembly_2.13-4.1.1.jar
     volumes:
       - ./spark-warehouse:/app/spark-warehouse
+      - ./data:/app/data
     networks:
       - spark-network
 
@@ -98,25 +105,29 @@ services:
       spark-master:
         condition: service_healthy
     environment:
-      - SPARK_APPLICATION_SCRIPT=/app/spark-pipeline.yml
+      - SPARK_APPLICATION_SCRIPT=/app/pipelines/raw_transactions.yml
       - SPARK_REMOTE=${SPARK_REMOTE}
       - SPARK_APP_TYPE=sdp
       - IVY_HOME=/tmp/.ivy2
       - PYTHONPATH=/app/src
+      - ICEBERG_CATALOG=${ICEBERG_CATALOG}
     command: >
       /bin/bash -c "
       if [ \"$${SPARK_APP_TYPE}\" == \"sdp\" ]; then
-        spark-pipelines run --spec $${SPARK_APPLICATION_SCRIPT} --conf spark.sql.warehouse.dir=${WAREHOUSE_PATH};
+        spark-pipelines run --spec $${SPARK_APPLICATION_SCRIPT} --conf spark.sql.warehouse.dir=${WAREHOUSE_PATH} --conf spark.sql.defaultCatalog=$${ICEBERG_CATALOG};
       else
         python3 $${SPARK_APPLICATION_SCRIPT};
-      fi
+      fi;
+      echo 'Pipeline finished. Keeping container alive...';
+      tail -f /dev/null
       "
     volumes:
       - ./src:/app/src
       - ./dbt:/app/dbt
-      - ./checkpoints:/checkpoints
+      - ./pipelines:/app/pipelines
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
       - ./spark-warehouse:/app/spark-warehouse
-      - ./spark-pipeline.yml:/app/spark-pipeline.yml
     networks:
       - spark-network
 
