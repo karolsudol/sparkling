@@ -19,3 +19,15 @@ clean-targets:
 models:
   sparkling_dbt:
     +materialized: table
+    +file_format: iceberg
+    stg:
+      +schema: stg
+    dw:
+      +schema: dw
+    mrt:
+      +schema: mrt
+
+seeds:
+  sparkling_dbt:
+    +schema: raw
+    +file_format: iceberg

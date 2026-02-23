@@ -7,8 +7,8 @@ def main():
     
     namespaces = ["raw", "stg", "dw", "mrt"]
     for ns in namespaces:
-        print(f"Creating namespace in spark_catalog: {ns}")
-        spark.sql(f"CREATE NAMESPACE IF NOT EXISTS spark_catalog.{ns}")
+        print(f"Creating namespace: {ns}")
+        spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {ns}")
     
     spark.stop()
 

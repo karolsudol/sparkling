@@ -1,3 +1,6 @@
+include .env
+export
+
 .PHONY: up start stop clean run pipeline verify clean-warehouse logs ps dbt-seed dbt-run fix-permissions cleanup-dbt chown-me
 
 # Build and start the cluster
@@ -52,7 +55,7 @@ clean-warehouse:
 # 2. Setup namespaces
 setup-namespaces:
 	@echo "${BLUE}Setting up namespaces...${END}"
-	@docker exec spark-master python3 /app/src/setup_namespaces.py
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/setup_namespaces.py
 
 # 3. dbt Seed
 dbt-seed:
@@ -67,7 +70,7 @@ dbt-run:
 # 5. Run the Verification Script
 verify:
 	@echo "${BLUE}Running Verification...${END}"
-	@docker exec spark-master python3 /app/src/verify.py
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/verify.py
 
 # Consolidated Run: Fix -> Clean -> Namespaces -> Seed -> dbt
 run: fix-permissions clean-warehouse setup-namespaces dbt-seed dbt-run verify
