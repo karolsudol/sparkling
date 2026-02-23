@@ -6,7 +6,7 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **Spark 4.1.1**: Official Apache Spark environment.
 - **Spark Connect**: Decoupled client-server architecture using gRPC (`sc://localhost:15002`).
 - **dbt-spark**: SQL-based transformations using the `session` method (Spark Connect).
-- **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `@dp.streaming_table`.
+- **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `@dp.table` (Streaming).
 - **Apache Iceberg**: High-performance table format using the **REST Catalog** for centralized metadata management.
 - **UV Powered**: High-performance Python package management.
 - **Shared Warehouse**: Persistent data storage across the entire cluster.
@@ -51,6 +51,8 @@ This project uses two ways to manage dependencies:
 1. **`pyproject.toml`**: The primary source of truth for **local development**. It is used by `uv` to manage the virtual environment and tools like `ruff`.
 2. **`requirements.txt`**: Used by **Docker** during the build phase (`Dockerfile.spark`) to install packages inside the cluster.
 
+Always ensure both files are kept in sync when adding new libraries.
+
 ## Code Quality
 The project uses automated tools to ensure consistent code style and quality:
 - **Ruff**: An extremely fast Python linter and formatter.
@@ -66,9 +68,13 @@ To initialize these tools, run `make setup`.
 - `make lint`: Manually run all linters and formatters.
 
 ### Transactions Dataset Pipeline
-- `make run-transactions`: The full automated sequence (Fresh start).
+
+**Full Automated Sequence (Fresh Start)**
+- `make run-transactions`: Chains all steps below. It wipes the warehouse, generates fresh data, ingests it to RAW, runs all dbt layers, and prints the final stats. Use this for a clean slate.
+
+**Individual Incremental Steps**
 - `make generate-transactions`: Simulate a new batch of data arriving in the landing zone.
-- `make ingest-transactions`: Run the Spark SDP pipeline to incrementally load CSV into `raw`.
+- `make ingest-transactions`: Run the Spark SDP pipeline to incrementally load only new CSVs into `raw`.
 - `make transform-transactions`: Run dbt transformations (`stg` -> `dw` -> `mrt`) incrementally.
 - `make show-marts`: View the final user statistics directly from your host.
 - `make show-marts-docker`: View the final user statistics from within the Spark cluster.

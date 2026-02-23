@@ -23,25 +23,25 @@ fix-permissions:
 
 generate-transactions:
 	@echo "${BLUE}Generating transactions data...${END}"
-	@uv run src/generate_transactions.py
+	@PYTHONWARNINGS=ignore uv run src/generate_transactions.py
 
 ingest-transactions:
 	@echo "${BLUE}Ingesting Transactions to RAW...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-app spark-pipelines run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-app spark-pipelines run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
 
 transform-transactions:
 	@echo "${BLUE}Transforming Transactions (STG -> MRT)...${END}"
-	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt run --select "*transactions*" "*user_stats*" --profiles-dir .
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt run --select "*transactions*" "*user_stats*" --profiles-dir .
 
 # Show final marts data (runs locally via uv)
 show-marts:
 	@echo "${BLUE}Fetching final stats (local)...${END}"
-	@uv run src/show_marts.py
+	@PYTHONWARNINGS=ignore uv run src/show_marts.py
 
 # Show final marts data (runs inside docker)
 show-marts-docker:
 	@echo "${BLUE}Fetching final stats (docker)...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/show_marts.py
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master python3 /app/src/show_marts.py
 
 run-transactions: lint fix-permissions clean-warehouse setup-namespaces
 	@$(MAKE) generate-transactions
@@ -90,11 +90,11 @@ clean-warehouse:
 
 setup-namespaces:
 	@echo "${BLUE}Setting up namespaces...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/setup_namespaces.py
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master python3 /app/src/setup_namespaces.py
 
 verify:
 	@echo "${BLUE}Running Verification...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/verify.py
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master python3 /app/src/verify.py
 
 # Helpers for colors
 BLUE=\033[94m

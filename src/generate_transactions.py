@@ -22,9 +22,9 @@ def generate_batch(batch_id):
 
 
 if __name__ == "__main__":
-    # Generate an initial batch if none exists
-    if not os.listdir("data/landing"):
-        generate_batch(1)
-    else:
-        # Generate a subsequent batch
-        generate_batch(2)
+    # Count how many batches exist to determine next batch ID
+    existing_batches = len(
+        [f for f in os.listdir("data/landing") if f.endswith(".csv")]
+    )
+    next_batch = existing_batches + 1
+    generate_batch(next_batch)
