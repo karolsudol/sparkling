@@ -5,12 +5,12 @@ export
 
 # Build and start the cluster
 up:
-	docker compose up -d --build spark-master spark-worker spark-connect
+	docker compose up -d --build iceberg-rest spark-master spark-worker spark-connect
 	@$(MAKE) urls
 
 # Start existing containers without rebuilding
 start:
-	docker compose up -d spark-master spark-worker spark-connect
+	docker compose up -d iceberg-rest spark-master spark-worker spark-connect
 	@$(MAKE) urls
 
 # Display Spark Web UI URLs
@@ -19,6 +19,7 @@ urls:
 	@echo "Spark Master UI:  http://localhost:8080"
 	@echo "Spark Worker UI:  http://localhost:8081"
 	@echo "Spark Connect:    sc://localhost:15002"
+	@echo "Iceberg REST:     http://localhost:8181"
 	@echo "--------------------------------------------------"
 
 # Stop the containers without removing them

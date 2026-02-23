@@ -7,16 +7,17 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **Spark Connect**: Decoupled client-server architecture using gRPC (`sc://localhost:15002`).
 - **dbt-spark**: SQL-based transformations using the `session` method (Spark Connect).
 - **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view`.
-- **Apache Iceberg**: High-performance table format with Snapshot Isolation.
+- **Apache Iceberg**: High-performance table format using the **REST Catalog** for centralized metadata management.
 - **UV Powered**: High-performance Python package management.
 - **Shared Warehouse**: Persistent data storage across the entire cluster.
 
 ## Architecture
+- **Iceberg REST Catalog (`iceberg-rest`)**: The central metadata service. All tools (Spark, dbt) talk to this service to discover tables.
 - **Spark Connect (`spark-connect`)**: The permanent gateway. It manages the **Spark Driver** and logical query plans.
 - **Master (`spark-master`)**: The central orchestrator for resource allocation.
 - **Worker (`spark-worker`)**: The computational engine that executes tasks.
 - **dbt Engine**: Executed inside the cluster containers to leverage pre-configured Iceberg JARs and gRPC connectivity.
-- **Iceberg Catalog**: Configured as `spark_catalog`. Data is stored in `spark-warehouse/iceberg/`.
+- **Warehouse**: Data is stored in `spark-warehouse/iceberg/`.
 
 ## Execution Model
 ```text
@@ -25,6 +26,10 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
     (gRPC)
        |
 [ Spark Connect ]       (Session & Driver)
+       |
+     (REST)
+       |
+[ Iceberg REST ]        (Metadata Service)
        |
 [ Spark Master ]        (Cluster Scheduler)
        |

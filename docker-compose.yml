@@ -45,6 +45,8 @@ services:
     depends_on:
       spark-master:
         condition: service_healthy
+      iceberg-rest:
+        condition: service_started
     ports:
       - "15002:15002"
     command: >
@@ -57,11 +59,25 @@ services:
       --conf spark.sql.defaultCatalog=${ICEBERG_CATALOG}
       --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
       --conf spark.sql.catalog.${ICEBERG_CATALOG}=org.apache.iceberg.spark.SparkCatalog
-      --conf spark.sql.catalog.${ICEBERG_CATALOG}.type=hadoop
+      --conf spark.sql.catalog.${ICEBERG_CATALOG}.type=rest
+      --conf spark.sql.catalog.${ICEBERG_CATALOG}.uri=http://iceberg-rest:8181
       --conf spark.sql.catalog.${ICEBERG_CATALOG}.warehouse=file:/app/spark-warehouse/iceberg
       --conf spark.sql.iceberg.vectorization.enabled=false
       --class org.apache.spark.sql.connect.service.SparkConnectServer
       /opt/spark/external/spark-connect-assembly_2.13-4.1.1.jar
+    volumes:
+      - ./spark-warehouse:/app/spark-warehouse
+    networks:
+      - spark-network
+
+  iceberg-rest:
+    image: tabulario/iceberg-rest:0.6.0
+    container_name: iceberg-rest
+    ports:
+      - "8181:8181"
+    environment:
+      - CATALOG_WAREHOUSE=file:///app/spark-warehouse/iceberg
+      - CATALOG_IO__IMPL=org.apache.iceberg.hadoop.HadoopFileIO
     volumes:
       - ./spark-warehouse:/app/spark-warehouse
     networks:
