@@ -13,6 +13,7 @@ hs_err_pid*
 # Spark Data and Metadata
 spark-warehouse/
 checkpoints/
+data/
 
 # dbt
 dbt/target/

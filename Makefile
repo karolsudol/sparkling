@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: up start stop clean run-transactions verify clean-warehouse logs ps fix-permissions chown-me lint setup generate-transactions ingest-transactions transform-transactions
+.PHONY: up start stop clean run-transactions verify clean-warehouse logs ps fix-permissions chown-me lint setup generate-transactions ingest-transactions transform-transactions show-marts
 
 # --- Initialization ---
 
@@ -33,12 +33,17 @@ transform-transactions:
 	@echo "${BLUE}Transforming Transactions (STG -> MRT)...${END}"
 	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt run --select "*transactions*" "*user_stats*" --profiles-dir .
 
+# Show final marts data (runs locally via uv)
+show-marts:
+	@echo "${BLUE}Fetching final stats...${END}"
+	@uv run src/show_marts.py
+
 run-transactions: lint fix-permissions clean-warehouse setup-namespaces
 	@$(MAKE) generate-transactions
 	@$(MAKE) fix-permissions
 	@$(MAKE) ingest-transactions
 	@$(MAKE) transform-transactions
-	@$(MAKE) verify
+	@$(MAKE) show-marts
 
 # --- Infrastructure ---
 
