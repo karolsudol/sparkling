@@ -48,10 +48,13 @@ cleanup-dbt:
 
 # --- Pipeline Lifecycle Commands ---
 
-# 1. Remove old warehouse data
+# 1. Remove old warehouse data and reset REST catalog metadata
 clean-warehouse:
 	@echo "${BLUE}Cleaning up old warehouse data...${END}"
 	@sudo rm -rf spark-warehouse/*
+	@echo "${BLUE}Restarting Iceberg REST to clear metadata...${END}"
+	@docker compose restart iceberg-rest
+	@sleep 2
 
 # 2. Setup namespaces
 setup-namespaces:
