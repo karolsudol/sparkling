@@ -6,6 +6,7 @@ services:
     image: spark-4.1.1-uv:latest
     container_name: spark-master
     hostname: spark-master
+    user: "0:0"
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
     ports:
       - "8080:8080"
@@ -26,6 +27,7 @@ services:
     image: spark-4.1.1-uv:latest
     container_name: spark-worker
     hostname: spark-worker
+    user: "0:0"
     depends_on:
       - spark-master
     command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
@@ -42,6 +44,7 @@ services:
     image: spark-4.1.1-uv:latest
     container_name: spark-connect
     hostname: spark-connect
+    user: "0:0"
     depends_on:
       spark-master:
         condition: service_healthy
@@ -73,11 +76,13 @@ services:
   iceberg-rest:
     image: tabulario/iceberg-rest:0.6.0
     container_name: iceberg-rest
+    user: "0:0"
     ports:
       - "8181:8181"
     environment:
       - CATALOG_WAREHOUSE=file:///app/spark-warehouse/iceberg
       - CATALOG_IO__IMPL=org.apache.iceberg.hadoop.HadoopFileIO
+      - HADOOP_USER_NAME=iceberg
     volumes:
       - ./spark-warehouse:/app/spark-warehouse
     networks:
@@ -88,6 +93,7 @@ services:
     container_name: spark-app
     hostname: spark-app
     working_dir: /app
+    user: "0:0"
     depends_on:
       spark-master:
         condition: service_healthy

@@ -33,8 +33,8 @@ clean:
 # Fix permissions
 fix-permissions:
 	@echo "${BLUE}Fixing permissions...${END}"
-	@docker exec -u 0 spark-master chown -R 185:0 /app/dbt
-	@docker exec -u 0 spark-master chmod -R 775 /app/dbt
+	@docker exec -u 0 spark-master chmod -R 777 /app/dbt /app/spark-warehouse || true
+	@sudo chmod -R 777 dbt/ spark-warehouse/ || true
 
 # Chown back to user
 chown-me:
@@ -50,11 +50,14 @@ cleanup-dbt:
 
 # 1. Remove old warehouse data and reset REST catalog metadata
 clean-warehouse:
-	@echo "${BLUE}Cleaning up old warehouse data...${END}"
-	@sudo rm -rf spark-warehouse/*
-	@echo "${BLUE}Restarting Iceberg REST to clear metadata...${END}"
+	@echo "${BLUE}Cleaning up old warehouse data and catalog...${END}"
+	@sudo rm -rf spark-warehouse/iceberg/
+	@sudo mkdir -p spark-warehouse/iceberg/
+	@sudo chmod -R 777 spark-warehouse/
+	@echo "${BLUE}Restarting Iceberg REST...${END}"
 	@docker compose restart iceberg-rest
-	@sleep 2
+	@echo "${BLUE}Waiting for Iceberg REST to initialize...${END}"
+	@sleep 5
 
 # 2. Setup namespaces
 setup-namespaces:
@@ -64,12 +67,12 @@ setup-namespaces:
 # 3. dbt Seed
 dbt-seed:
 	@echo "${BLUE}Running dbt seed...${END}"
-	@docker exec -w /app/dbt spark-master dbt seed --profiles-dir .
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt seed --profiles-dir .
 
 # 4. dbt Run
 dbt-run:
 	@echo "${BLUE}Running dbt pipeline...${END}"
-	@docker exec -w /app/dbt spark-master dbt run --profiles-dir .
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt run --profiles-dir .
 
 # 5. Run the Verification Script
 verify:
@@ -77,7 +80,17 @@ verify:
 	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/verify.py
 
 # Consolidated Run: Fix -> Clean -> Namespaces -> Seed -> dbt
-run: fix-permissions clean-warehouse setup-namespaces dbt-seed dbt-run verify
+run: fix-permissions clean-warehouse
+	@echo "${BLUE}Setting up namespaces...${END}"
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/setup_namespaces.py
+	@echo "${BLUE}Synchronizing permissions for Spark workers...${END}"
+	@docker exec -u 0 spark-master chmod -R 777 /app/spark-warehouse
+	@sleep 2
+	@echo "${BLUE}Final permission fix...${END}"
+	@sudo chmod -R 777 spark-warehouse/ dbt/
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt seed --profiles-dir .
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt run --profiles-dir .
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/verify.py
 
 # Helpers for colors
 BLUE=\033[94m
