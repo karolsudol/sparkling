@@ -1,4 +1,3 @@
-from assets import TABLE_FCT_EVENS, TABLE_MRT_STATS, TABLE_RAW_SOURCE, TABLE_STG_SOURCE
 from config import SPARK_REMOTE
 from pyspark.sql import SparkSession
 from utils import Colors, get_logger
@@ -7,9 +6,14 @@ logger = get_logger("Verify")
 
 
 def verify_pipeline_results(spark):
-    logger.info("--- VERIFYING MDS-STYLE ICEBERG PIPELINE ---")
+    logger.info("--- VERIFYING HYBRID SDP + DBT PIPELINE ---")
 
-    tables = [TABLE_RAW_SOURCE, TABLE_STG_SOURCE, TABLE_FCT_EVENS, TABLE_MRT_STATS]
+    tables = [
+        "raw.transactions",
+        "stg.stg_transactions",
+        "dw.fct_transactions",
+        "mrt.mrt_user_stats",
+    ]
 
     for t in tables:
         logger.info(f"Checking Table: {t}")
@@ -17,7 +21,7 @@ def verify_pipeline_results(spark):
             df = spark.table(t)
             df.show(5)
 
-            # Show snapshots
+            # Show snapshots for Iceberg tables
             logger.info(f"Recent snapshots for {t}:")
             spark.sql(
                 f"SELECT snapshot_id, committed_at, operation FROM {t}.snapshots"
