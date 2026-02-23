@@ -1,7 +1,12 @@
 include .env
 export
 
-.PHONY: up start stop clean run pipeline verify clean-warehouse logs ps dbt-seed dbt-run fix-permissions cleanup-dbt chown-me
+.PHONY: up start stop clean run pipeline verify clean-warehouse logs ps dbt-seed dbt-run fix-permissions cleanup-dbt chown-me lint
+
+# Lint and format code
+lint:
+	@echo "${BLUE}Running linting and formatting...${END}"
+	@pre-commit run --all-files
 
 # Build and start the cluster
 up:

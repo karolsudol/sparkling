@@ -38,7 +38,7 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 
 - **Gateway**: `spark-connect` is a persistent gRPC gateway that manages the Spark Driver.
 - **Scheduling**: `spark-master` acts as the Standalone Cluster Manager.
-- **Session Isolation**: Every client connection (including every dbt model run) receives a unique, isolated **Spark Session**. 
+- **Session Isolation**: Every client connection (including every dbt model run) receives a unique, isolated **Spark Session**.
 - **Persistence**: Iceberg metadata is persisted in the shared warehouse, ensuring tables created in one session are visible to the next.
 
 ## Available Commands

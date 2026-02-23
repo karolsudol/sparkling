@@ -1,4 +1,1 @@
-select 
-    id
-from {{ ref('stg_numbers') }}
-where id % 2 = 0
+select id from {{ ref('stg_numbers') }} where id % 2 = 0
