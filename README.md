@@ -63,30 +63,30 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 
 
 ## Apache Iceberg
-The project is configured with an Iceberg catalog named `local`. Tables created under this catalog benefit from snapshot isolation and time travel.
+The project is configured with an Iceberg catalog named `spark_catalog`. Tables created under this catalog benefit from snapshot isolation and time travel.
 
 ## Data Architecture
-The pipeline follows a multi-layered Medallion-style architecture within the `local` Iceberg catalog, as defined in `src/assets.py`.
+The pipeline follows a multi-layered Medallion-style architecture within the `spark_catalog` Iceberg catalog, as defined in `src/assets.py`.
 
 ### Layers
 | Layer | Namespace | Description |
 |---|---|---|
-| **Raw** | `local.raw` | Immutable source data landing zone. |
-| **Staging** | `local.stg` | Cleaned data with consistent types and naming. |
-| **Warehouse** | `local.dw` | Modeled facts and dimensions (Data Warehouse). |
-| **Marts** | `local.mrt` | Business-ready aggregates and final outputs. |
+| **Raw** | `spark_catalog.raw` | Immutable source data landing zone. |
+| **Staging** | `spark_catalog.stg` | Cleaned data with consistent types and naming. |
+| **Warehouse** | `spark_catalog.dw` | Modeled facts and dimensions (Data Warehouse). |
+| **Marts** | `spark_catalog.mrt` | Business-ready aggregates and final outputs. |
 
 ### Data Flow
 ```text
 [ Raw ]             [ Staging ]         [ Warehouse ]       [ Marts ]
 source_numbers  -->  stg_numbers  -->  fct_filtered_evens  -->  mrt_final_stats
-(local.raw)         (local.stg)         (local.dw)          (local.mrt)
+(spark_catalog.raw) (spark_catalog.stg) (spark_catalog.dw)  (spark_catalog.mrt)
 ```
 
 ### Usage in SDP
-To create an Iceberg table, use the `local.` prefix in your view name:
+To create an Iceberg table, use the `spark_catalog.` prefix in your view name:
 ```python
-@dp.materialized_view(name="local.default.my_table")
+@dp.materialized_view(name="spark_catalog.default.my_table")
 def create_data():
     ...
 ```
@@ -94,8 +94,8 @@ def create_data():
 ### Inspecting History
 You can query Iceberg metadata directly:
 ```sql
-SELECT * FROM local.default.my_table.snapshots;
-SELECT * FROM local.default.my_table.history;
+SELECT * FROM spark_catalog.default.my_table.snapshots;
+SELECT * FROM spark_catalog.default.my_table.history;
 ```
 
 ## Available Commands
