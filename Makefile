@@ -1,7 +1,13 @@
 include .env
 export
 
-.PHONY: up start stop clean run pipeline verify clean-warehouse logs ps dbt-seed dbt-run fix-permissions cleanup-dbt chown-me lint
+.PHONY: up start stop clean run pipeline verify clean-warehouse logs ps dbt-seed dbt-run fix-permissions cleanup-dbt chown-me lint setup
+
+# Initialize the local environment (install hooks, etc.)
+setup:
+	@echo "${BLUE}Setting up local environment...${END}"
+	@uv pip install -r requirements.txt
+	@pre-commit install
 
 # Lint and format code
 lint:
@@ -84,8 +90,8 @@ verify:
 	@echo "${BLUE}Running Verification...${END}"
 	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/verify.py
 
-# Consolidated Run: Fix -> Clean -> Namespaces -> Seed -> dbt
-run: fix-permissions clean-warehouse
+# Consolidated Run: Lint -> Fix -> Clean -> Namespaces -> Seed -> dbt
+run: lint fix-permissions clean-warehouse
 	@echo "${BLUE}Setting up namespaces...${END}"
 	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/setup_namespaces.py
 	@echo "${BLUE}Synchronizing permissions for Spark workers...${END}"

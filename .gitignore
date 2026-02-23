@@ -4,6 +4,8 @@
 __pycache__/
 .venv/
 .ivy2/
+.ruff_cache/
+.pytest_cache/
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
@@ -19,4 +21,13 @@ dbt/logs/
 dbt/metastore_db/
 dbt/.user.yml
 dbt_modules/
+dbt/profiles.yml
 profiles.yml
+
+# Environment & Locks
+.env
+uv.lock
+
+# IDEs
+.vscode/
+.idea/

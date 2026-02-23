@@ -10,6 +10,21 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **Apache Iceberg**: High-performance table format using the **REST Catalog** for centralized metadata management.
 - **UV Powered**: High-performance Python package management.
 - **Shared Warehouse**: Persistent data storage across the entire cluster.
+- **Code Quality**: Pre-configured **Ruff** (Python) and **sqlfmt** (SQL) for consistent styling.
+
+## Getting Started
+
+1. **Clone the repository**
+2. **Setup Environment**:
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` if you need to change any default ports or paths.
+3. **Initialize the project**:
+   ```bash
+   make setup
+   ```
+   This will install dependencies and set up pre-commit hooks.
 
 ## Architecture
 - **Iceberg REST Catalog (`iceberg-rest`)**: The central metadata service. All tools (Spark, dbt) talk to this service to discover tables.
@@ -19,29 +34,29 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **dbt Engine**: Executed inside the cluster containers to leverage pre-configured Iceberg JARs and gRPC connectivity.
 - **Warehouse**: Data is stored in `spark-warehouse/iceberg/`.
 
-## Execution Model
-```text
-   [ Client ]           (uv run, dbt, SDP CLI)
-       |
-    (gRPC)
-       |
-[ Spark Connect ]       (Session & Driver)
-       |
-     (REST)
-       |
-[ Iceberg REST ]        (Metadata Service)
-       |
-[ Spark Master ]        (Cluster Scheduler)
-       |
-[ Spark Worker ]        (Task Execution)
+## Dependencies
+This project uses two ways to manage dependencies:
+1. **`pyproject.toml`**: The primary source of truth for **local development**. It is used by `uv` to manage the virtual environment and tools like `ruff`.
+2. **`requirements.txt`**: Used by **Docker** during the build phase (`Dockerfile.spark`) to install packages inside the cluster.
+
+Always ensure both files are kept in sync when adding new libraries.
+
+## Code Quality
+The project uses automated tools to ensure consistent code style and quality:
+- **Ruff**: An extremely fast Python linter and formatter.
+- **sqlfmt**: A formatter for dbt SQL models.
+- **Pre-commit**: Hooks that automatically run these tools before every commit.
+
+To initialize these tools, run:
+```bash
+make setup
 ```
 
-- **Gateway**: `spark-connect` is a persistent gRPC gateway that manages the Spark Driver.
-- **Scheduling**: `spark-master` acts as the Standalone Cluster Manager.
-- **Session Isolation**: Every client connection (including every dbt model run) receives a unique, isolated **Spark Session**.
-- **Persistence**: Iceberg metadata is persisted in the shared warehouse, ensuring tables created in one session are visible to the next.
-
 ## Available Commands
+
+### Environment Setup
+- `make setup`: Install dependencies and initialize pre-commit hooks.
+- `make lint`: Manually run all linters and formatters.
 
 ### Cluster Lifecycle
 - `make up`: Build and start the entire cluster.
@@ -49,13 +64,13 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 
 ### Running Pipelines
 - `make run`: The full automated sequence:
-    1.  **Fix Permissions**: Ensures Docker can write to local `dbt/` folders.
-    2.  **Clean Warehouse**: Wipes old Iceberg data.
-    3.  **Setup Namespaces**: Re-creates `raw`, `stg`, `dw`, `mrt`.
-    4.  **dbt Seed**: Loads CSV data into the cluster.
-    5.  **dbt Run**: Executes the transformation pipeline.
-    6.  **Verify**: Runs a Python script to check results.
-
+    1.  **Lint**: Checks code formatting and quality.
+    2.  **Fix Permissions**: Ensures Docker can write to local `dbt/` folders.
+    3.  **Clean Warehouse**: Wipes old Iceberg data and resets catalog.
+    4.  **Setup Namespaces**: Re-creates `raw`, `stg`, `dw`, `mrt`.
+    5.  **dbt Seed**: Loads CSV data into the cluster.
+    6.  **dbt Run**: Executes the transformation pipeline.
+    7.  **Verify**: Runs a Python script to check results.
 ### dbt Specifics
 - `make dbt-seed`: Run only dbt seeds.
 - `make dbt-run`: Execute dbt transformations.
