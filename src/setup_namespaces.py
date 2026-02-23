@@ -1,14 +1,18 @@
 from pyspark.sql import SparkSession
-import os
+from config import SPARK_REMOTE, NAMESPACES, WAREHOUSE_PATH
 
 def main():
-    remote_url = os.getenv("SPARK_REMOTE", "sc://spark-connect:15002")
-    spark = SparkSession.builder.remote(remote_url).getOrCreate()
+    spark = SparkSession.builder.remote(SPARK_REMOTE).getOrCreate()
     
-    namespaces = ["raw", "stg", "dw", "mrt"]
-    for ns in namespaces:
-        print(f"Creating namespace: {ns}")
-        spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {ns}")
+    for ns in NAMESPACES:
+        # Construct the location path explicitly
+        # This resolves the 'Cannot open table: path is not set' error
+        location = f"{WAREHOUSE_PATH}/{ns}"
+        print(f"Creating namespace: {ns} with location: {location}")
+        
+        # We need to drop and re-create if we want to change the location, 
+        # but for a fresh start CREATE NAMESPACE ... LOCATION is best
+        spark.sql(f"CREATE NAMESPACE IF NOT EXISTS {ns} LOCATION '{location}'")
     
     spark.stop()
 

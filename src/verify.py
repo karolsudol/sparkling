@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
 from utils import get_logger, Colors
 from assets import TABLE_RAW_SOURCE, TABLE_STG_SOURCE, TABLE_FCT_EVENS, TABLE_MRT_STATS
+from config import SPARK_REMOTE
 
 logger = get_logger("Verify")
 
@@ -23,12 +24,9 @@ def verify_pipeline_results(spark):
             logger.error(f"Table {t} could not be read: {e}")
 
 def main():
-    import os
-    remote_url = os.getenv("SPARK_REMOTE", "sc://localhost:15002")
-    
     spark = SparkSession.builder \
         .appName("IcebergVerifier") \
-        .remote(remote_url) \
+        .remote(SPARK_REMOTE) \
         .getOrCreate()
     
     try:

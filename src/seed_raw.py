@@ -1,15 +1,15 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
-import os
+from config import SPARK_REMOTE, ICEBERG_CATALOG, RAW
 
 def main():
-    remote_url = os.getenv("SPARK_REMOTE", "sc://spark-connect:15002")
-    spark = SparkSession.builder.remote(remote_url).getOrCreate()
+    spark = SparkSession.builder.remote(SPARK_REMOTE).getOrCreate()
     
+    table_name = f"{ICEBERG_CATALOG}.{RAW}.source_numbers"
     # Write to raw schema in spark_catalog
-    print("Seeding spark_catalog.raw.source_numbers...")
+    print(f"Seeding {table_name}...")
     df = spark.range(0, 100).select(col("id").alias("number"))
-    df.write.format("iceberg").mode("overwrite").saveAsTable("spark_catalog.raw.source_numbers")
+    df.write.format("iceberg").mode("overwrite").saveAsTable(table_name)
     
     print("Done!")
     spark.stop()

@@ -1,9 +1,4 @@
-# --- CATALOG & NAMESPACES ---
-# We use the default spark_catalog (configured as Iceberg)
-RAW = "raw"     # Source data
-STG = "stg"     # Staging: Type casting, renaming
-DW  = "dw"      # Data Warehouse: Facts and Dimensions
-MRT = "mrt"     # Marts: Final aggregates
+from config import RAW, STG, DW, MRT
 
 # --- TABLE NAMES ---
 # Source -> Staging -> Fact -> Mart
