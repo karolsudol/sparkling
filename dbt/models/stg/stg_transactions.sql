@@ -8,7 +8,7 @@
 select
     transaction_id,
     user_id,
-    cast(amount as double) as amount,
+    cast(amount as decimal(18, 2)) as amount,
     status,
     cast(event_time as timestamp) as event_at
 from {{ source('raw', 'transactions') }}

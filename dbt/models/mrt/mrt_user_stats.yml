@@ -10,11 +10,14 @@ models:
       - name: user_id
         data_type: string
         description: "Unique identifier for the user."
+        tests:
+          - unique
+          - not_null
       - name: total_transactions
         data_type: bigint
         description: "Total count of completed transactions."
       - name: total_spent
-        data_type: double
+        data_type: decimal(18,2)
         description: "Sum of amount spent across all completed transactions."
       - name: last_active_at
         data_type: timestamp

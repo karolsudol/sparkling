@@ -31,7 +31,7 @@ ingest-transactions:
 
 transform-transactions:
 	@echo "${BLUE}Transforming Transactions (STG -> MRT)...${END}"
-	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt run --select "*transactions*" "*user_stats*" --profiles-dir .
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt build --select "*transactions*" "*user_stats*" --profiles-dir .
 
 # Show final marts data (runs locally via uv)
 show-marts:

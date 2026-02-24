@@ -6,6 +6,8 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **Spark 4.1.1**: Official Apache Spark environment.
 - **Spark Connect**: Decoupled client-server architecture using gRPC (`sc://localhost:15002`).
 - **dbt-spark**: SQL-based transformations using the `session` method (Spark Connect).
+- **Schema Enforcement**: Strong data contracts using **dbt Model Contracts** to ensure Spark/Iceberg table integrity.
+- **Data Quality**: Automated testing (`unique`, `not_null`) integrated into the transformation pipeline.
 - **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `@dp.table` (Streaming).
 - **Apache Iceberg**: High-performance table format using the **REST Catalog** for centralized metadata management.
 - **UV Powered**: High-performance Python package management.
@@ -86,6 +88,21 @@ To initialize these tools, run `make setup`.
 
 ## Apache Iceberg
 The project is configured with an Iceberg catalog named `spark_catalog`. Tables created under this catalog benefit from snapshot isolation and time travel.
+
+## Schema Enforcement & Testing
+This project implements **Data Contracts** to ensure reliability in the Spark environment:
+
+- **Model Contracts**: Every dbt model in `stg`, `dw`, and `mrt` layers has `enforced: true`. This means dbt will fail the build if the SQL output doesn't exactly match the schema (column names and Spark types) defined in the `.yml` files.
+- **Financial Precision**: All `amount` and `total_spent` columns are strictly typed as `decimal(18,2)` to prevent floating-point errors common with `double`.
+- **Integrity Tests**:
+    - `unique`: Ensures no duplicate IDs (e.g., `transaction_id`) exist in the warehouse or marts.
+    - `not_null`: Ensures critical fields like `user_id` and `event_at` are never missing.
+
+To run these checks manually:
+```bash
+# Runs both transformations and all tests
+make transform-transactions
+```
 
 ## Data Architecture (Medallion)
 | Layer | Namespace | Description |
