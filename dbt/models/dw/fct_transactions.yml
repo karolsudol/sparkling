@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: fct_transactions
+    description: "Filtered and cleaned transactions containing only COMPLETED events."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: transaction_id
+        data_type: string
+        description: "Unique identifier for each transaction."
+      - name: user_id
+        data_type: string
+        description: "ID of the user who performed the transaction."
+      - name: amount
+        data_type: double
+        description: "Transaction amount."
+      - name: event_at
+        data_type: timestamp
+        description: "Timestamp when the event occurred."
