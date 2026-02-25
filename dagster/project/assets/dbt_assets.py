@@ -18,9 +18,16 @@ if not DBT_MANIFEST_PATH.exists():
 # We use a custom translator to ensure the asset keys match our Iceberg catalog
 class SparklingDbtTranslator(DagsterDbtTranslator):
     def get_asset_key(self, dbt_resource_props):
+        resource_type = dbt_resource_props.get("resource_type")
+        name = dbt_resource_props.get("name")
+
+        if resource_type == "source":
+            # Link dbt source (raw.transactions) to our Spark asset key
+            source_name = dbt_resource_props.get("source_name")
+            return ["spark_catalog", source_name, name]
+
         # Maps dbt models to Dagster asset keys: spark_catalog.<schema>.<model>
         schema = dbt_resource_props.get("schema")
-        name = dbt_resource_props.get("name")
         return ["spark_catalog", schema, name]
 
 

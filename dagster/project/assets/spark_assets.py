@@ -40,3 +40,16 @@ def transactions(context: AssetExecutionContext):
             "table": "spark_catalog.raw.transactions",
         },
     )
+
+
+@asset(deps=[["spark_catalog", "mrt", "mrt_user_stats"]], group_name="mrt")
+def final_stats_report(context: AssetExecutionContext):
+    """Fetches and logs the final user statistics."""
+    result = subprocess.run(
+        ["python3", "/app/src/show_marts.py"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    context.log.info(result.stdout)
+    return "Report generated in logs"
