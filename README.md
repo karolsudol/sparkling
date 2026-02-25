@@ -10,6 +10,7 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **Data Quality**: Automated testing (`unique`, `not_null`) integrated into the transformation pipeline.
 - **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `@dp.table` (Streaming).
 - **Apache Iceberg**: High-performance table format using the **REST Catalog** for centralized metadata management.
+- **Dagster**: Modern orchestration for managing Spark and dbt assets with a rich UI.
 - **UV Powered**: High-performance local Python environment management.
 - **Shared Warehouse**: Persistent data storage across the entire cluster.
 - **Code Quality**: Pre-configured **Ruff** (Python) and **sqlfmt** (SQL) for consistent styling.
@@ -35,6 +36,7 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **Master (`spark-master`)**: The central orchestrator for resource allocation. Also hosts the **dbt** transformation client.
 - **Worker (`spark-worker`)**: The computational engine that executes tasks.
 - **dbt Engine**: Executed inside the `spark-master` container, connecting to the cluster via Spark Connect.
+- **Dagster (`dagster-webserver`, `dagster-daemon`)**: Orchestrates the entire data pipeline, managing dependencies between Spark ingestion and dbt transformations.
 - **Warehouse**: Data is stored in `spark-warehouse/iceberg/`.
 
 ### System Architecture
@@ -155,3 +157,4 @@ make transform-transactions
 - **Spark Worker UI**: [http://localhost:8081](http://localhost:8081)
 - **Spark Connect**: `sc://localhost:15002`
 - **Iceberg REST**: `http://localhost:8181`
+- **Dagster UI**: `http://localhost:3000`

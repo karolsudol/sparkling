@@ -4,3 +4,9 @@ dbt-spark[session]
 ruff
 pre-commit
 sqlfmt
+pandas
+numpy
+dagster
+dagster-webserver
+dagster-dbt
+dagster-postgres

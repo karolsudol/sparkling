@@ -131,6 +131,61 @@ services:
     networks:
       - spark-network
 
+  dagster-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.dagster
+    container_name: dagster-webserver
+    hostname: dagster-webserver
+    restart: always
+    command: ["dagster-webserver", "-h", "0.0.0.0", "-p", "3000", "-w", "/app/dagster/workspace.yaml"]
+    environment:
+      - DAGSTER_HOME=/opt/dagster/dagster_home
+      - SPARK_REMOTE=${SPARK_REMOTE}
+      - ICEBERG_CATALOG=${ICEBERG_CATALOG}
+    volumes:
+      - ./dagster/dagster.yaml:/opt/dagster/dagster_home/dagster.yaml
+      - ./dagster:/app/dagster
+      - ./dbt:/app/dbt
+      - ./src:/app/src
+      - ./pipelines:/app/pipelines
+      - ./data:/app/data
+      - ./spark-warehouse:/app/spark-warehouse
+      - ./checkpoints:/app/checkpoints
+    ports:
+      - "3000:3000"
+    depends_on:
+      spark-connect:
+        condition: service_started
+    networks:
+      - spark-network
+
+  dagster-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile.dagster
+    container_name: dagster-daemon
+    hostname: dagster-daemon
+    restart: always
+    command: ["dagster-daemon", "run"]
+    environment:
+      - DAGSTER_HOME=/opt/dagster/dagster_home
+      - SPARK_REMOTE=${SPARK_REMOTE}
+      - ICEBERG_CATALOG=${ICEBERG_CATALOG}
+    volumes:
+      - ./dagster/dagster.yaml:/opt/dagster/dagster_home/dagster.yaml
+      - ./dagster:/app/dagster
+      - ./dbt:/app/dbt
+      - ./src:/app/src
+      - ./pipelines:/app/pipelines
+      - ./data:/app/data
+      - ./spark-warehouse:/app/spark-warehouse
+      - ./checkpoints:/app/checkpoints
+    depends_on:
+      - dagster-webserver
+    networks:
+      - spark-network
+
 networks:
   spark-network:
     driver: bridge

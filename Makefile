@@ -27,7 +27,7 @@ generate-transactions:
 
 ingest-transactions:
 	@echo "${BLUE}Ingesting Transactions to RAW...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-raw-transactions spark-pipelines run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
+	@PYTHONWARNINGS=ignore uv run spark-pipelines run --spec pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
 
 transform-transactions:
 	@echo "${BLUE}Transforming Transactions (STG -> MRT)...${END}"
@@ -48,20 +48,20 @@ run-transaction-pipeline:
 
 check-contracts:
 	@echo "${BLUE}Running Dry Run for Ingestion...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-raw-transactions spark-pipelines dry-run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
+	@PYTHONWARNINGS=ignore uv run spark-pipelines dry-run --spec pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
 	@echo "${BLUE}Validating dbt SQL against YAML contracts...${END}"
 	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt build --select "*transactions*" "*user_stats*" --limit 0 --profiles-dir .
 
 # --- Infrastructure ---
 
 up:
-	docker compose up -d --build --remove-orphans iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
+	docker compose up -d --build --remove-orphans iceberg-rest spark-master spark-worker spark-connect dagster-webserver dagster-daemon
 	@$(MAKE) urls
 	@$(MAKE) fix-permissions
 	@$(MAKE) setup-namespaces
 
 start:
-	docker compose up -d --remove-orphans iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
+	docker compose up -d --remove-orphans iceberg-rest spark-master spark-worker spark-connect dagster-webserver dagster-daemon
 	@$(MAKE) urls
 	@$(MAKE) fix-permissions
 
@@ -71,6 +71,7 @@ urls:
 	@echo "Spark Worker UI:  http://localhost:8081"
 	@echo "Spark Connect:    sc://localhost:15002"
 	@echo "Iceberg REST:     http://localhost:8181"
+	@echo "Dagster UI:       http://localhost:3000"
 	@echo "--------------------------------------------------"
 
 stop:
