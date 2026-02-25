@@ -31,10 +31,32 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 ## Architecture
 - **Iceberg REST Catalog (`iceberg-rest`)**: The central metadata service. All tools (Spark, dbt) talk to this service to discover tables.
 - **Spark Connect (`spark-connect`)**: The permanent gateway. It manages the **Spark Driver** and logical query plans.
-- **Master (`spark-master`)**: The central orchestrator for resource allocation.
+- **Raw Transactions App (`spark-raw-transactions`)**: A containerized Spark Connect client responsible for running the `raw_transactions_pipeline`.
+- **Master (`spark-master`)**: The central orchestrator for resource allocation. Also hosts the **dbt** transformation client.
 - **Worker (`spark-worker`)**: The computational engine that executes tasks.
-- **dbt Engine**: Executed inside the cluster containers to leverage pre-configured Iceberg JARs and gRPC connectivity.
+- **dbt Engine**: Executed inside the `spark-master` container, connecting to the cluster via Spark Connect.
 - **Warehouse**: Data is stored in `spark-warehouse/iceberg/`.
+
+### System Architecture
+This project uses a decoupled client-server architecture via **Spark Connect**. Multiple clients communicate with a single Spark gateway:
+
+```text
+[ Clients ]                       [ Server / Gateway ]          [ Cluster ]
+
+(Python / SDP)
+[ spark-raw-transactions ] --+
+                             |
+(SQL / dbt)                  |
+[ dbt (in master) ]  --------+--> [ spark-connect ] -- (RPC) --> [ spark-master ]
+                             |      (Spark Driver)                    |
+(Local Development)          |                                        v
+[ Host (uv run) ]  ----------+                                 [ spark-worker ]
+                                                                      |
+                                                                      v
+                                                               [ Iceberg REST ]
+                                                                      |
+                                                               [ File System ]
+```
 
 ## Data Flow
 ```text

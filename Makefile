@@ -27,7 +27,7 @@ generate-transactions:
 
 ingest-transactions:
 	@echo "${BLUE}Ingesting Transactions to RAW...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-app spark-pipelines run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-raw-transactions spark-pipelines run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
 
 transform-transactions:
 	@echo "${BLUE}Transforming Transactions (STG -> MRT)...${END}"
@@ -50,14 +50,22 @@ run-transactions: lint fix-permissions clean-warehouse setup-namespaces
 	@$(MAKE) transform-transactions
 	@$(MAKE) show-marts-docker
 
+# --- Validation & Dry Runs ---
+
+check-contracts:
+	@echo "${BLUE}Running Dry Run for Ingestion...${END}"
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-raw-transactions spark-pipelines dry-run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
+	@echo "${BLUE}Validating dbt SQL against YAML contracts...${END}"
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt build --select "*transactions*" "*user_stats*" --limit 0 --profiles-dir .
+
 # --- Infrastructure ---
 
 up:
-	docker compose up -d --build iceberg-rest spark-master spark-worker spark-connect spark-app
+	docker compose up -d --build iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
 	@$(MAKE) urls
 
 start:
-	docker compose up -d iceberg-rest spark-master spark-worker spark-connect spark-app
+	docker compose up -d iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
 	@$(MAKE) urls
 
 urls:

@@ -95,10 +95,10 @@ services:
     networks:
       - spark-network
 
-  spark-app:
+  spark-raw-transactions:
     image: spark-4.1.1-uv:latest
-    container_name: spark-app
-    hostname: spark-app
+    container_name: spark-raw-transactions
+    hostname: spark-raw-transactions
     working_dir: /app
     user: "0:0"
     depends_on:

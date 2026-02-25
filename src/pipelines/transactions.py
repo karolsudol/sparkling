@@ -1,6 +1,6 @@
 from pyspark import pipelines as dp
 from pyspark.sql import SparkSession
-from pyspark.sql.types import DoubleType, StringType, StructField, StructType
+from pyspark.sql.types import DecimalType, StringType, StructField, StructType
 
 
 def spark():
@@ -12,7 +12,7 @@ source_schema = StructType(
     [
         StructField("transaction_id", StringType(), True),
         StructField("user_id", StringType(), True),
-        StructField("amount", DoubleType(), True),
+        StructField("amount", DecimalType(18, 2), True),
         StructField("status", StringType(), True),
         StructField("event_time", StringType(), True),
     ]
