@@ -61,11 +61,11 @@ check-contracts:
 # --- Infrastructure ---
 
 up:
-	docker compose up -d --build iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
+	docker compose up -d --build --remove-orphans iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
 	@$(MAKE) urls
 
 start:
-	docker compose up -d iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
+	docker compose up -d --remove-orphans iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
 	@$(MAKE) urls
 
 urls:
