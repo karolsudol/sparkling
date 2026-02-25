@@ -1,13 +1,12 @@
 include .env
 export
 
-.PHONY: up start stop clean run-transactions verify clean-warehouse logs ps fix-permissions chown-me lint setup generate-transactions ingest-transactions transform-transactions show-marts
+.PHONY: up start stop clean run-transaction-pipeline verify clean-warehouse logs ps fix-permissions chown-me lint setup generate-transactions ingest-transactions transform-transactions show-marts
 
 # --- Initialization ---
 
 setup:
 	@echo "${BLUE}Setting up local environment...${END}"
-	@uv pip install -r requirements.txt
 	@pre-commit install
 
 lint:
@@ -23,7 +22,7 @@ fix-permissions:
 
 generate-transactions:
 	@echo "${BLUE}Generating transactions data...${END}"
-	@PYTHONWARNINGS=ignore uv run src/generate_transactions.py
+	@PYTHONWARNINGS=ignore python3 src/generate_transactions.py
 
 ingest-transactions:
 	@echo "${BLUE}Ingesting Transactions to RAW...${END}"
@@ -33,22 +32,16 @@ transform-transactions:
 	@echo "${BLUE}Transforming Transactions (STG -> MRT)...${END}"
 	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt build --select "*transactions*" "*user_stats*" --profiles-dir .
 
-# Show final marts data (runs locally via uv)
+# Show final marts data (runs locally)
 show-marts:
 	@echo "${BLUE}Fetching final stats (local)...${END}"
-	@PYTHONWARNINGS=ignore uv run src/show_marts.py
+	@PYTHONWARNINGS=ignore python3 src/show_marts.py
 
-# Show final marts data (runs inside docker)
-show-marts-docker:
-	@echo "${BLUE}Fetching final stats (docker)...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master python3 /app/src/show_marts.py
-
-run-transactions: lint fix-permissions clean-warehouse setup-namespaces
+run-transaction-pipeline:
 	@$(MAKE) generate-transactions
-	@$(MAKE) fix-permissions
 	@$(MAKE) ingest-transactions
 	@$(MAKE) transform-transactions
-	@$(MAKE) show-marts-docker
+	@$(MAKE) show-marts
 
 # --- Validation & Dry Runs ---
 
@@ -63,10 +56,13 @@ check-contracts:
 up:
 	docker compose up -d --build --remove-orphans iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
 	@$(MAKE) urls
+	@$(MAKE) fix-permissions
+	@$(MAKE) setup-namespaces
 
 start:
 	docker compose up -d --remove-orphans iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
 	@$(MAKE) urls
+	@$(MAKE) fix-permissions
 
 urls:
 	@echo "--------------------------------------------------"

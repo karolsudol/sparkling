@@ -10,7 +10,6 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **Data Quality**: Automated testing (`unique`, `not_null`) integrated into the transformation pipeline.
 - **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `@dp.table` (Streaming).
 - **Apache Iceberg**: High-performance table format using the **REST Catalog** for centralized metadata management.
-- **UV Powered**: High-performance Python package management.
 - **Shared Warehouse**: Persistent data storage across the entire cluster.
 - **Code Quality**: Pre-configured **Ruff** (Python) and **sqlfmt** (SQL) for consistent styling.
 
@@ -26,7 +25,7 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
    ```bash
    make setup
    ```
-   This will install dependencies and set up pre-commit hooks.
+   This will set up pre-commit hooks.
 
 ## Architecture
 - **Iceberg REST Catalog (`iceberg-rest`)**: The central metadata service. All tools (Spark, dbt) talk to this service to discover tables.
@@ -50,7 +49,7 @@ This project uses a decoupled client-server architecture via **Spark Connect**. 
 [ dbt (in master) ]  --------+--> [ spark-connect ] -- (RPC) --> [ spark-master ]
                              |      (Spark Driver)                    |
 (Local Development)          |                                        v
-[ Host (uv run) ]  ----------+                                 [ spark-worker ]
+[ Host (python3) ]  ---------+                                 [ spark-worker ]
                                                                       |
                                                                       v
                                                                [ Iceberg REST ]
@@ -93,18 +92,18 @@ To initialize these tools, run `make setup`.
 
 ### Transactions Dataset Pipeline
 
-**Full Automated Sequence (Fresh Start)**
-- `make run-transactions`: Chains all steps below. It wipes the warehouse, generates fresh data, ingests it to RAW, runs all dbt layers, and prints the final stats. Use this for a clean slate.
+**Full Automated Sequence**
+- `make run-transaction-pipeline`: Chains all steps below. It generates fresh data, ingests it to RAW, runs all dbt layers, and prints the final stats.
 
 **Individual Incremental Steps**
 - `make generate-transactions`: Simulate a new batch of data arriving in the landing zone.
 - `make ingest-transactions`: Run the Spark SDP pipeline to incrementally load only new CSVs into `raw`.
 - `make transform-transactions`: Run dbt transformations (`stg` -> `dw` -> `mrt`) incrementally.
 - `make show-marts`: View the final user statistics directly from your host.
-- `make show-marts-docker`: View the final user statistics from within the Spark cluster.
 
 ### Cluster Lifecycle
-- `make up`: Build and start the entire cluster.
+- `make up`: Build and start the entire cluster, fixes permissions and sets up namespaces.
+- `make start`: Start existing containers without rebuilding.
 - `make clean`: Deep clean (removes containers, volumes, and built images).
 - `make clean-warehouse`: Wipes all Iceberg data, checkpoints, and landing files.
 
