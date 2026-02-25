@@ -1,30 +1,70 @@
 include .env
 export
 
-.PHONY: up start stop clean run pipeline verify clean-warehouse logs ps dbt-seed dbt-run fix-permissions cleanup-dbt chown-me lint setup
+.PHONY: up start stop clean run-transaction-pipeline verify clean-warehouse logs ps fix-permissions chown-me lint setup generate-transactions ingest-transactions transform-transactions show-marts
 
-# Initialize the local environment (install hooks, etc.)
+# --- Initialization ---
+
 setup:
 	@echo "${BLUE}Setting up local environment...${END}"
-	@uv pip install -r requirements.txt
+	@uv sync
 	@pre-commit install
 
-# Lint and format code
 lint:
 	@echo "${BLUE}Running linting and formatting...${END}"
-	@pre-commit run --all-files
+	@uv run pre-commit run --all-files
 
-# Build and start the cluster
+fix-permissions:
+	@echo "${BLUE}Fixing permissions...${END}"
+	@docker exec -u 0 spark-master chmod -R 777 /app/dbt /app/spark-warehouse /app/data /app/checkpoints || true
+	@sudo chmod -R 777 dbt/ spark-warehouse/ data/ checkpoints/ || true
+
+# --- TRANSACTIONS DATASET PIPELINE ---
+
+generate-transactions:
+	@echo "${BLUE}Generating transactions data...${END}"
+	@PYTHONWARNINGS=ignore uv run src/generate_transactions.py
+
+ingest-transactions:
+	@echo "${BLUE}Ingesting Transactions to RAW...${END}"
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-raw-transactions spark-pipelines run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
+
+transform-transactions:
+	@echo "${BLUE}Transforming Transactions (STG -> MRT)...${END}"
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt build --select "*transactions*" "*user_stats*" --profiles-dir .
+
+# Show final marts data (runs locally)
+show-marts:
+	@echo "${BLUE}Fetching final stats (local)...${END}"
+	@PYTHONWARNINGS=ignore uv run src/show_marts.py
+
+run-transaction-pipeline:
+	@$(MAKE) generate-transactions
+	@$(MAKE) ingest-transactions
+	@$(MAKE) transform-transactions
+	@$(MAKE) show-marts
+
+# --- Validation & Dry Runs ---
+
+check-contracts:
+	@echo "${BLUE}Running Dry Run for Ingestion...${END}"
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-raw-transactions spark-pipelines dry-run --spec /app/pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
+	@echo "${BLUE}Validating dbt SQL against YAML contracts...${END}"
+	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt build --select "*transactions*" "*user_stats*" --limit 0 --profiles-dir .
+
+# --- Infrastructure ---
+
 up:
-	docker compose up -d --build iceberg-rest spark-master spark-worker spark-connect
+	docker compose up -d --build --remove-orphans iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
 	@$(MAKE) urls
+	@$(MAKE) fix-permissions
+	@$(MAKE) setup-namespaces
 
-# Start existing containers without rebuilding
 start:
-	docker compose up -d iceberg-rest spark-master spark-worker spark-connect
+	docker compose up -d --remove-orphans iceberg-rest spark-master spark-worker spark-connect spark-raw-transactions
 	@$(MAKE) urls
+	@$(MAKE) fix-permissions
 
-# Display Spark Web UI URLs
 urls:
 	@echo "--------------------------------------------------"
 	@echo "Spark Master UI:  http://localhost:8080"
@@ -33,75 +73,33 @@ urls:
 	@echo "Iceberg REST:     http://localhost:8181"
 	@echo "--------------------------------------------------"
 
-# Stop the containers without removing them
 stop:
 	docker compose stop
 
-# Clean everything: containers, volumes, and local images
 clean:
 	docker compose down -v --rmi local --remove-orphans
 
-# Fix permissions
-fix-permissions:
-	@echo "${BLUE}Fixing permissions...${END}"
-	@docker exec -u 0 spark-master chmod -R 777 /app/dbt /app/spark-warehouse || true
-	@sudo chmod -R 777 dbt/ spark-warehouse/ || true
-
-# Chown back to user
-chown-me:
-	@echo "${BLUE}Reclaiming ownership...${END}"
-	@sudo chown -R $(USER):$(USER) dbt/
-
-# Deep cleanup
-cleanup-dbt:
-	@echo "${BLUE}Deep cleanup of dbt...${END}"
-	@docker exec -u 0 spark-master rm -rf /app/dbt/target /app/dbt/metastore_db /app/dbt/spark-warehouse /app/dbt/derby.log /app/dbt/logs
-
-# --- Pipeline Lifecycle Commands ---
-
-# 1. Remove old warehouse data and reset REST catalog metadata
 clean-warehouse:
 	@echo "${BLUE}Cleaning up old warehouse data and catalog...${END}"
 	@sudo rm -rf spark-warehouse/iceberg/
-	@sudo mkdir -p spark-warehouse/iceberg/
-	@sudo chmod -R 777 spark-warehouse/
-	@echo "${BLUE}Restarting Iceberg REST...${END}"
-	@docker compose restart iceberg-rest
+	@sudo rm -rf checkpoints/*
+	@sudo rm -rf data/landing/*
+	@sudo mkdir -p spark-warehouse/iceberg/ checkpoints/ data/landing/
+	@sudo chmod -R 777 spark-warehouse/ checkpoints/ data/
+	@echo "${BLUE}Wiping Iceberg REST Catalog state...${END}"
+	@docker compose stop iceberg-rest
+	@docker compose rm -f iceberg-rest
+	@docker compose up -d iceberg-rest
 	@echo "${BLUE}Waiting for Iceberg REST to initialize...${END}"
 	@sleep 5
 
-# 2. Setup namespaces
 setup-namespaces:
 	@echo "${BLUE}Setting up namespaces...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/setup_namespaces.py
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master python3 /app/src/setup_namespaces.py
 
-# 3. dbt Seed
-dbt-seed:
-	@echo "${BLUE}Running dbt seed...${END}"
-	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt seed --profiles-dir .
-
-# 4. dbt Run
-dbt-run:
-	@echo "${BLUE}Running dbt pipeline...${END}"
-	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt run --profiles-dir .
-
-# 5. Run the Verification Script
 verify:
 	@echo "${BLUE}Running Verification...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/verify.py
-
-# Consolidated Run: Lint -> Fix -> Clean -> Namespaces -> Seed -> dbt
-run: lint fix-permissions clean-warehouse
-	@echo "${BLUE}Setting up namespaces...${END}"
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/setup_namespaces.py
-	@echo "${BLUE}Synchronizing permissions for Spark workers...${END}"
-	@docker exec -u 0 spark-master chmod -R 777 /app/spark-warehouse
-	@sleep 2
-	@echo "${BLUE}Final permission fix...${END}"
-	@sudo chmod -R 777 spark-warehouse/ dbt/
-	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt seed --profiles-dir .
-	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} spark-master dbt run --profiles-dir .
-	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} spark-master python3 /app/src/verify.py
+	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master python3 /app/src/verify.py
 
 # Helpers for colors
 BLUE=\033[94m

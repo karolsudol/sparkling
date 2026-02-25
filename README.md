@@ -6,9 +6,11 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **Spark 4.1.1**: Official Apache Spark environment.
 - **Spark Connect**: Decoupled client-server architecture using gRPC (`sc://localhost:15002`).
 - **dbt-spark**: SQL-based transformations using the `session` method (Spark Connect).
-- **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view`.
+- **Schema Enforcement**: Strong data contracts using **dbt Model Contracts** to ensure Spark/Iceberg table integrity.
+- **Data Quality**: Automated testing (`unique`, `not_null`) integrated into the transformation pipeline.
+- **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `@dp.table` (Streaming).
 - **Apache Iceberg**: High-performance table format using the **REST Catalog** for centralized metadata management.
-- **UV Powered**: High-performance Python package management.
+- **UV Powered**: High-performance local Python environment management.
 - **Shared Warehouse**: Persistent data storage across the entire cluster.
 - **Code Quality**: Pre-configured **Ruff** (Python) and **sqlfmt** (SQL) for consistent styling.
 
@@ -22,17 +24,51 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
    Edit `.env` if you need to change any default ports or paths.
 3. **Initialize the project**:
    ```bash
+   # Sets up the local uv environment and pre-commit hooks
    make setup
    ```
-   This will install dependencies and set up pre-commit hooks.
 
 ## Architecture
 - **Iceberg REST Catalog (`iceberg-rest`)**: The central metadata service. All tools (Spark, dbt) talk to this service to discover tables.
 - **Spark Connect (`spark-connect`)**: The permanent gateway. It manages the **Spark Driver** and logical query plans.
-- **Master (`spark-master`)**: The central orchestrator for resource allocation.
+- **Raw Transactions App (`spark-raw-transactions`)**: A containerized Spark Connect client responsible for running the `raw_transactions_pipeline`.
+- **Master (`spark-master`)**: The central orchestrator for resource allocation. Also hosts the **dbt** transformation client.
 - **Worker (`spark-worker`)**: The computational engine that executes tasks.
-- **dbt Engine**: Executed inside the cluster containers to leverage pre-configured Iceberg JARs and gRPC connectivity.
+- **dbt Engine**: Executed inside the `spark-master` container, connecting to the cluster via Spark Connect.
 - **Warehouse**: Data is stored in `spark-warehouse/iceberg/`.
+
+### System Architecture
+This project uses a decoupled client-server architecture via **Spark Connect**. Multiple clients communicate with a single Spark gateway:
+
+```text
+[ Clients ]                       [ Server / Gateway ]          [ Cluster ]
+
+(Python / SDP)
+[ spark-raw-transactions ] --+
+                             |
+(SQL / dbt)                  |
+[ dbt (in master) ]  --------+--> [ spark-connect ] -- (RPC) --> [ spark-master ]
+                             |      (Spark Driver)                    |
+(Local Development)          |                                        v
+[ Host (uv run) ]  ----------+                                 [ spark-worker ]
+                                                                      |
+                                                                      v
+                                                               [ Iceberg REST ]
+                                                                      |
+                                                               [ File System ]
+```
+
+## Data Flow
+```text
+[ File System ]       [ Spark SDP ]       [ Iceberg RAW ]       [ dbt Core ]       [ Iceberg MRT ]
+CSV Batches    --->  Streaming Table  --->  raw.transactions  --->  SQL Models  --->  mrt.user_stats
+```
+
+## Hybrid Workflow
+This project demonstrates a modern hybrid transformation architecture organized by dataset:
+
+1. **Spark SDP (`pipelines/`)**: Handles the **Ingestion** layer. It uses Python-based `Streaming Tables` to incrementally pick up CSV files from `./data/landing` and write them into the Iceberg `raw` namespace.
+2. **dbt Core (`dbt/models/`)**: Handles the **Modeling** layers. It picks up where SDP left off, using incremental SQL models to transform the data through `stg`, `dw`, and `mrt` layers.
 
 ## Dependencies
 This project uses two ways to manage dependencies:
@@ -47,10 +83,23 @@ The project uses automated tools to ensure consistent code style and quality:
 - **sqlfmt**: A formatter for dbt SQL models.
 - **Pre-commit**: Hooks that automatically run these tools before every commit.
 
-To initialize these tools, run:
-```bash
-make setup
-```
+To initialize these tools, run `make setup`.
+
+## Execution Models
+
+The project distinguishes between **Local Development** (sandboxed via `uv`) and **Production-Ready** execution (containerized via Docker).
+
+### 1. Local Development (`uv`)
+Used for generating data, viewing results, and running quality tools. These commands run on your host machine but are sandboxed within a `uv` virtual environment to ensure zero dependency on system-global Python.
+- **Tools**: `generate-transactions`, `show-marts`, `lint`.
+- **Requirement**: `uv` must be installed on your host.
+
+### 2. Cluster / Production-Ready (Docker)
+Used for heavy-duty data movement and transformations. These commands are executed **inside** the Spark cluster.
+- **Tools**: `ingest-transactions` (SDP), `transform-transactions` (dbt).
+- **Execution**: Orchestrated via `docker exec` commands in the `Makefile`.
+
+---
 
 ## Available Commands
 
@@ -58,103 +107,51 @@ make setup
 - `make setup`: Install dependencies and initialize pre-commit hooks.
 - `make lint`: Manually run all linters and formatters.
 
+### Transactions Dataset Pipeline
+
+**Full Automated Sequence**
+- `make run-transaction-pipeline`: Chains all steps below. It generates fresh data, ingests it to RAW, runs all dbt layers, and prints the final stats.
+
+**Individual Incremental Steps**
+- `make generate-transactions`: Simulate a new batch of data arriving in the landing zone.
+- `make ingest-transactions`: Run the Spark SDP pipeline to incrementally load only new CSVs into `raw`.
+- `make transform-transactions`: Run dbt transformations (`stg` -> `dw` -> `mrt`) incrementally.
+- `make show-marts`: View the final user statistics directly from your host.
+
 ### Cluster Lifecycle
-- `make up`: Build and start the entire cluster.
+- `make up`: Build and start the entire cluster, fixes permissions and sets up namespaces.
+- `make start`: Start existing containers without rebuilding.
 - `make clean`: Deep clean (removes containers, volumes, and built images).
-
-### Running Pipelines
-- `make run`: The full automated sequence:
-    1.  **Lint**: Checks code formatting and quality.
-    2.  **Fix Permissions**: Ensures Docker can write to local `dbt/` folders.
-    3.  **Clean Warehouse**: Wipes old Iceberg data and resets catalog.
-    4.  **Setup Namespaces**: Re-creates `raw`, `stg`, `dw`, `mrt`.
-    5.  **dbt Seed**: Loads CSV data into the cluster.
-    6.  **dbt Run**: Executes the transformation pipeline.
-    7.  **Verify**: Runs a Python script to check results.
-### dbt Specifics
-- `make dbt-seed`: Run only dbt seeds.
-- `make dbt-run`: Execute dbt transformations.
-- `make fix-permissions`: Use this if you hit `Permission Denied` in the `dbt/` folder.
-
+- `make clean-warehouse`: Wipes all Iceberg data, checkpoints, and landing files.
 
 ## Apache Iceberg
 The project is configured with an Iceberg catalog named `spark_catalog`. Tables created under this catalog benefit from snapshot isolation and time travel.
 
-## Data Architecture
-The pipeline follows a multi-layered Medallion-style architecture within the `spark_catalog` Iceberg catalog, as defined in `src/assets.py`.
+## Schema Enforcement & Testing
+This project implements **Data Contracts** to ensure reliability in the Spark environment:
 
-### Layers
+- **Model Contracts**: Every dbt model in `stg`, `dw`, and `mrt` layers has `enforced: true`. This means dbt will fail the build if the SQL output doesn't exactly match the schema (column names and Spark types) defined in the `.yml` files.
+- **Financial Precision**: All `amount` and `total_spent` columns are strictly typed as `decimal(18,2)` to prevent floating-point errors common with `double`.
+- **Integrity Tests**:
+    - `unique`: Ensures no duplicate IDs (e.g., `transaction_id`) exist in the warehouse or marts.
+    - `not_null`: Ensures critical fields like `user_id` and `event_at` are never missing.
+
+To run these checks manually:
+```bash
+# Runs both transformations and all tests
+make transform-transactions
+```
+
+## Data Architecture (Medallion)
 | Layer | Namespace | Description |
 |---|---|---|
-| **Raw** | `spark_catalog.raw` | Immutable source data landing zone. |
-| **Staging** | `spark_catalog.stg` | Cleaned data with consistent types and naming. |
-| **Warehouse** | `spark_catalog.dw` | Modeled facts and dimensions (Data Warehouse). |
-| **Marts** | `spark_catalog.mrt` | Business-ready aggregates and final outputs. |
-
-### Data Flow
-```text
-[ Raw ]             [ Staging ]         [ Warehouse ]       [ Marts ]
-source_numbers  -->  stg_numbers  -->  fct_filtered_evens  -->  mrt_final_stats
-(spark_catalog.raw) (spark_catalog.stg) (spark_catalog.dw)  (spark_catalog.mrt)
-```
-
-### Usage in SDP
-To create an Iceberg table, use the `spark_catalog.` prefix in your view name:
-```python
-@dp.materialized_view(name="spark_catalog.default.my_table")
-def create_data():
-    ...
-```
-
-### Inspecting History
-You can query Iceberg metadata directly:
-```sql
-SELECT * FROM spark_catalog.default.my_table.snapshots;
-SELECT * FROM spark_catalog.default.my_table.history;
-```
-
-## Available Commands
-
-### Cluster Lifecycle
-- `make up`: Build and start the entire cluster (Master, Worker, Connect).
-- `make start`: Quickly resume stopped containers.
-- `make stop`: Pause the cluster.
-- `make clean`: Deep clean (removes containers, volumes, and built images).
-
-### Running Applications
-- `make run`: Execute the default **SDP Pipeline** defined in `spark-pipeline.yml`.
-
-### Utility
-- `make logs`: Follow container logs.
-- `make ps`: Check the status of all services.
+| **Raw** | `spark_catalog.raw` | Immutable source data landing zone (Managed by SDP). |
+| **Staging** | `spark_catalog.stg` | Cleaned data with consistent types and naming (Managed by dbt). |
+| **Warehouse** | `spark_catalog.dw` | Modeled facts and dimensions (Managed by dbt). |
+| **Marts** | `spark_catalog.mrt` | Business-ready aggregates and final outputs (Managed by dbt). |
 
 ## Access Spark UI
 - **Spark Master UI**: [http://localhost:8080](http://localhost:8080)
 - **Spark Worker UI**: [http://localhost:8081](http://localhost:8081)
 - **Spark Connect**: `sc://localhost:15002`
-
-## Project Structure
-- `src/`: Python source code and SDP flow definitions.
-- `spark-pipeline.yml`: Configuration for Declarative Pipelines.
-- `spark-warehouse/`: Local directory where Materialized Views are persisted as Parquet files.
-- `checkpoints/`: Storage for streaming and pipeline metadata.
-
-## Local Development (VS Code / IDE)
-To resolve import errors (like `pyspark` not found) in your IDE, create a local virtual environment:
-
-```bash
-uv venv
-source .venv/bin/activate
-uv pip install -r requirements.txt
-```
-
-Then, select the `.venv/bin/python` interpreter in your IDE settings.
-
-### Running Scripts Locally
-You can execute scripts on your host machine while the heavy lifting happens on the Docker cluster:
-
-```bash
-uv run src/verify.py
-```
-
-The scripts are configured to automatically detect if they are running locally and will connect to the Spark Connect endpoint at `sc://localhost:15002`.
+- **Iceberg REST**: `http://localhost:8181`

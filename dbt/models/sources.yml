@@ -4,4 +4,4 @@ sources:
   - name: raw
     schema: raw
     tables:
-      - name: source_numbers
+      - name: transactions

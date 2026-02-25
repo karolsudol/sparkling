@@ -1,0 +1,24 @@
+version: 2
+
+models:
+  - name: mrt_user_stats
+    description: "User-level aggregated statistics including total spend and activity."
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: user_id
+        data_type: string
+        description: "Unique identifier for the user."
+        tests:
+          - unique
+          - not_null
+      - name: total_transactions
+        data_type: bigint
+        description: "Total count of completed transactions."
+      - name: total_spent
+        data_type: decimal(28,2)
+        description: "Sum of amount spent across all completed transactions."
+      - name: last_active_at
+        data_type: timestamp
+        description: "Timestamp of the user's most recent completed transaction."
