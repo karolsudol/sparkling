@@ -7,11 +7,12 @@ export
 
 setup:
 	@echo "${BLUE}Setting up local environment...${END}"
+	@uv sync
 	@pre-commit install
 
 lint:
 	@echo "${BLUE}Running linting and formatting...${END}"
-	@pre-commit run --all-files
+	@uv run pre-commit run --all-files
 
 fix-permissions:
 	@echo "${BLUE}Fixing permissions...${END}"
@@ -22,7 +23,7 @@ fix-permissions:
 
 generate-transactions:
 	@echo "${BLUE}Generating transactions data...${END}"
-	@PYTHONWARNINGS=ignore python3 src/generate_transactions.py
+	@PYTHONWARNINGS=ignore uv run src/generate_transactions.py
 
 ingest-transactions:
 	@echo "${BLUE}Ingesting Transactions to RAW...${END}"
@@ -35,7 +36,7 @@ transform-transactions:
 # Show final marts data (runs locally)
 show-marts:
 	@echo "${BLUE}Fetching final stats (local)...${END}"
-	@PYTHONWARNINGS=ignore python3 src/show_marts.py
+	@PYTHONWARNINGS=ignore uv run src/show_marts.py
 
 run-transaction-pipeline:
 	@$(MAKE) generate-transactions

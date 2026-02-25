@@ -10,6 +10,7 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
 - **Data Quality**: Automated testing (`unique`, `not_null`) integrated into the transformation pipeline.
 - **Declarative Pipelines (SDP)**: Advanced orchestration using `@dp.materialized_view` and `@dp.table` (Streaming).
 - **Apache Iceberg**: High-performance table format using the **REST Catalog** for centralized metadata management.
+- **UV Powered**: High-performance local Python environment management.
 - **Shared Warehouse**: Persistent data storage across the entire cluster.
 - **Code Quality**: Pre-configured **Ruff** (Python) and **sqlfmt** (SQL) for consistent styling.
 
@@ -23,9 +24,9 @@ A Spark 4.1.1 development environment featuring **Spark Connect**, **dbt**, and 
    Edit `.env` if you need to change any default ports or paths.
 3. **Initialize the project**:
    ```bash
+   # Sets up the local uv environment and pre-commit hooks
    make setup
    ```
-   This will set up pre-commit hooks.
 
 ## Architecture
 - **Iceberg REST Catalog (`iceberg-rest`)**: The central metadata service. All tools (Spark, dbt) talk to this service to discover tables.
@@ -49,7 +50,7 @@ This project uses a decoupled client-server architecture via **Spark Connect**. 
 [ dbt (in master) ]  --------+--> [ spark-connect ] -- (RPC) --> [ spark-master ]
                              |      (Spark Driver)                    |
 (Local Development)          |                                        v
-[ Host (python3) ]  ---------+                                 [ spark-worker ]
+[ Host (uv run) ]  ----------+                                 [ spark-worker ]
                                                                       |
                                                                       v
                                                                [ Iceberg REST ]
@@ -83,6 +84,22 @@ The project uses automated tools to ensure consistent code style and quality:
 - **Pre-commit**: Hooks that automatically run these tools before every commit.
 
 To initialize these tools, run `make setup`.
+
+## Execution Models
+
+The project distinguishes between **Local Development** (sandboxed via `uv`) and **Production-Ready** execution (containerized via Docker).
+
+### 1. Local Development (`uv`)
+Used for generating data, viewing results, and running quality tools. These commands run on your host machine but are sandboxed within a `uv` virtual environment to ensure zero dependency on system-global Python.
+- **Tools**: `generate-transactions`, `show-marts`, `lint`.
+- **Requirement**: `uv` must be installed on your host.
+
+### 2. Cluster / Production-Ready (Docker)
+Used for heavy-duty data movement and transformations. These commands are executed **inside** the Spark cluster.
+- **Tools**: `ingest-transactions` (SDP), `transform-transactions` (dbt).
+- **Execution**: Orchestrated via `docker exec` commands in the `Makefile`.
+
+---
 
 ## Available Commands
 
