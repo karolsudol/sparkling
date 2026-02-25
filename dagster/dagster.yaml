@@ -1,3 +1,2 @@
-# Simple default configuration to avoid explicit class/module requirements for local storage
 telemetry:
   enabled: false

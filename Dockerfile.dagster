@@ -20,7 +20,8 @@ RUN curl -s https://repo1.maven.org/maven2/org/apache/iceberg/iceberg-spark-runt
 
 # Set Dagster Home
 ENV DAGSTER_HOME=/opt/dagster/dagster_home
-RUN mkdir -p $DAGSTER_HOME/storage $DAGSTER_HOME/compute_logs $DAGSTER_HOME/artifacts /app
+ENV HOME=/opt/dagster/dagster_home
+RUN mkdir -p $DAGSTER_HOME /app
 RUN chown -R 185:0 $DAGSTER_HOME /app
 RUN chmod -R 775 $DAGSTER_HOME
 
