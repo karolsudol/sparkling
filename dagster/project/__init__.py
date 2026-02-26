@@ -1,14 +1,13 @@
 from dagster import Definitions, load_assets_from_modules
 
-from .assets import dbt_assets, spark_assets
-from .resources import dbt_resource, spark_conn
+from . import assets, resources
 
-all_assets = load_assets_from_modules([spark_assets, dbt_assets])
+all_assets = load_assets_from_modules([assets.spark, assets.dbt])
 
 defs = Definitions(
     assets=all_assets,
     resources={
-        "spark": spark_conn,
-        "dbt": dbt_resource,
+        "spark": resources.spark_conn,
+        "dbt": resources.dbt_resource,
     },
 )

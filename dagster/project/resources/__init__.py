@@ -1,11 +1,4 @@
-from dagster_dbt import DbtCliResource
-
-from .spark_resource import spark_conn
-
-# dbt Resource
-dbt_resource = DbtCliResource(
-    project_dir="/app/dbt",
-    profiles_dir="/app/dbt",
-)
+from .dbt import dbt_resource
+from .spark import spark_conn
 
 __all__ = ["dbt_resource", "spark_conn"]

@@ -6,7 +6,8 @@ from dagster_dbt import DagsterDbtTranslator, DbtCliResource, dbt_assets
 
 from dagster import AssetExecutionContext
 
-DBT_PROJECT_DIR = "/app/dbt"
+from ..config import DBT_PROJECT_DIR, ICEBERG_CATALOG
+
 DBT_MANIFEST_PATH = Path(DBT_PROJECT_DIR) / "target" / "manifest.json"
 
 # Generate manifest if it doesn't exist
@@ -24,11 +25,11 @@ class SparklingDbtTranslator(DagsterDbtTranslator):
         if resource_type == "source":
             # Link dbt source (raw.transactions) to our Spark asset key
             source_name = dbt_resource_props.get("source_name")
-            return ["spark_catalog", source_name, name]
+            return [ICEBERG_CATALOG, source_name, name]
 
         # Maps dbt models to Dagster asset keys: spark_catalog.<schema>.<model>
         schema = dbt_resource_props.get("schema")
-        return ["spark_catalog", schema, name]
+        return [ICEBERG_CATALOG, schema, name]
 
 
 @dbt_assets(manifest=DBT_MANIFEST_PATH, dagster_dbt_translator=SparklingDbtTranslator())
