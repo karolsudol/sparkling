@@ -1,5 +1,4 @@
-from dagster import load_assets_from_modules
+from project.assets.dbt import sparkling_dbt_assets
+from project.assets.transactions import all_transactions_assets
 
-from . import dbt, spark
-
-all_assets = load_assets_from_modules([dbt, spark])
+all_assets = [sparkling_dbt_assets, *all_transactions_assets]

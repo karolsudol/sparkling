@@ -29,6 +29,9 @@ class SparklingDbtTranslator(DagsterDbtTranslator):
         # Return the schema name (stg, dw, mrt) as the group name
         return dbt_resource_props.get("schema")
 
+    def get_tags(self, dbt_resource_props):
+        return {"pipeline": "transactions", "compute_kind": "dbt"}
+
 
 # Try to ensure manifest exists (only if writable)
 if not DBT_MANIFEST_PATH.exists() and os.access(DBT_PROJECT_DIR, os.W_OK):
