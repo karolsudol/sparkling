@@ -1,6 +1,6 @@
 import subprocess
 
-from dagster import AssetExecutionContext, asset
+from dagster import AssetExecutionContext, Output, asset
 
 
 @asset(
@@ -18,4 +18,12 @@ def transactions_csv(context: AssetExecutionContext):
         check=True,
     )
     context.log.info(result.stdout)
-    return "data/landing"
+
+    # Best Practice: Return path and stdout as metadata for observability
+    return Output(
+        value="data/landing",
+        metadata={
+            "path": "data/landing",
+            "generation_log": result.stdout,
+        },
+    )
