@@ -90,8 +90,13 @@ services:
       - CATALOG_WAREHOUSE=file:///app/spark-warehouse/iceberg
       - CATALOG_IO__IMPL=org.apache.iceberg.hadoop.HadoopFileIO
       - HADOOP_USER_NAME=iceberg
+      - CATALOG_CATALOG__IMPL=org.apache.iceberg.jdbc.JdbcCatalog
+      - CATALOG_URI=jdbc:sqlite:file:/app/metadata/iceberg_catalog.db
+      - CATALOG_JDBC_USER=iceberg
+      - CATALOG_JDBC_PASSWORD=iceberg
     volumes:
       - ./spark-warehouse:/app/spark-warehouse
+      - ./metadata:/app/metadata
     networks:
       - spark-network
 

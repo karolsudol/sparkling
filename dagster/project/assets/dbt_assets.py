@@ -33,4 +33,4 @@ class SparklingDbtTranslator(DagsterDbtTranslator):
 
 @dbt_assets(manifest=DBT_MANIFEST_PATH, dagster_dbt_translator=SparklingDbtTranslator())
 def sparkling_dbt_assets(context: AssetExecutionContext, dbt: DbtCliResource):
-    yield from dbt.cli(["build"], context=context).get_artifacts()
+    yield from dbt.cli(["build"], context=context).stream()

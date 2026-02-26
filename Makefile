@@ -84,18 +84,13 @@ clean:
 	docker compose down -v --rmi local --remove-orphans
 
 clean-warehouse:
-	@echo "${BLUE}Cleaning up old warehouse data and catalog...${END}"
-	@sudo rm -rf spark-warehouse/iceberg/
+	@echo "${BLUE}Cleaning up old warehouse data...${END}"
+	@sudo rm -rf spark-warehouse/iceberg/*
 	@sudo rm -rf checkpoints/*
 	@sudo rm -rf data/landing/*
-	@sudo mkdir -p spark-warehouse/iceberg/ checkpoints/ data/landing/
+	@sudo mkdir -p spark-warehouse/iceberg/raw spark-warehouse/iceberg/stg spark-warehouse/iceberg/dw spark-warehouse/iceberg/mrt checkpoints/ data/landing/
 	@sudo chmod -R 777 spark-warehouse/ checkpoints/ data/
-	@echo "${BLUE}Wiping Iceberg REST Catalog state...${END}"
-	@docker compose stop iceberg-rest
-	@docker compose rm -f iceberg-rest
-	@docker compose up -d iceberg-rest
-	@echo "${BLUE}Waiting for Iceberg REST to initialize...${END}"
-	@sleep 5
+	@echo "${BLUE}Data cleaned. Catalog metadata in SQLite will persist.${END}"
 
 setup-namespaces:
 	@echo "${BLUE}Setting up namespaces...${END}"
