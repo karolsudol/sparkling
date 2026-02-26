@@ -100,6 +100,27 @@ verify:
 	@echo "${BLUE}Running Verification...${END}"
 	@docker exec -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master python3 /app/src/verify.py
 
+# --- Helpers ---
+
+help:
+	@echo "Usage: make [target]"
+	@echo ""
+	@echo "Infrastructure:"
+	@echo "  up             Build and start the cluster"
+	@echo "  stop           Stop all containers"
+	@echo "  clean          Remove containers and volumes"
+	@echo "  ps             List running containers"
+	@echo ""
+	@echo "Pipelines:"
+	@echo "  run-transaction-pipeline  Execute the full E2E pipeline"
+	@echo "  ingest-transactions       Run Spark SDP ingestion"
+	@echo "  transform-transactions    Run dbt transformations"
+	@echo ""
+	@echo "Tools:"
+	@echo "  lint           Run Python and SQL linters"
+	@echo "  verify         Run data integrity verification"
+	@echo "  clean-warehouse  Wipe all Iceberg data and checkpoints"
+
 # Helpers for colors
 BLUE=\033[94m
 END=\033[0m
