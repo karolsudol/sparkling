@@ -1,8 +1,8 @@
-import os
-
 from pyspark.sql import SparkSession
 
 from dagster import ConfigurableResource
+
+from ..config import SPARK_REMOTE
 
 
 class SparkConnectResource(ConfigurableResource):
@@ -14,6 +14,4 @@ class SparkConnectResource(ConfigurableResource):
         )
 
 
-spark_conn = SparkConnectResource(
-    remote_url=os.getenv("SPARK_REMOTE", "sc://spark-connect:15002")
-)
+spark_conn = SparkConnectResource(remote_url=SPARK_REMOTE)

@@ -58,6 +58,8 @@ services:
         condition: service_started
     ports:
       - "15002:15002"
+      - "4040:4040"
+      - "4041:4041"
     command: >
       /opt/spark/bin/spark-submit
       --master spark://spark-master:7077
@@ -152,7 +154,7 @@ services:
     volumes:
       - ./dagster/dagster.yaml:/opt/dagster/dagster_home/dagster.yaml
       - dagster-storage:/opt/dagster/dagster_home
-      - ./dagster/project:/app/dagster/project
+      - ./dagster/sparkling:/app/dagster/sparkling
       - ./dagster/workspace.yaml:/app/dagster/workspace.yaml
       - ./dbt:/app/dbt
       - ./src:/app/src
@@ -184,7 +186,7 @@ services:
     volumes:
       - ./dagster/dagster.yaml:/opt/dagster/dagster_home/dagster.yaml
       - dagster-storage:/opt/dagster/dagster_home
-      - ./dagster/project:/app/dagster/project
+      - ./dagster/sparkling:/app/dagster/sparkling
       - ./dagster/workspace.yaml:/app/dagster/workspace.yaml
       - ./dbt:/app/dbt
       - ./src:/app/src

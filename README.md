@@ -59,13 +59,6 @@ The project employs a decoupled client-server architecture where multiple thin c
 3.  **Explore**:
     Run `make help` to see all available commands for managing the cluster and pipelines.
 
-## Command Reference (`make help`)
-
-The environment is managed via a comprehensive `Makefile`. Run `make help` to see the full documentation:
-
-*   **Infrastructure**: `up`, `stop`, `clean`, `ps`.
-*   **Pipelines**: `run-transaction-pipeline`, `ingest-transactions`, `transform-transactions`.
-*   **Maintenance**: `lint`, `verify`, `clean-warehouse`.
 
 ## Access UIs
 
