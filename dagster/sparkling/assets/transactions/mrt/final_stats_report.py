@@ -1,4 +1,4 @@
-from dagster import AssetExecutionContext, Output, asset
+from dagster import AssetExecutionContext, AutomationCondition, Output, asset
 from sparkling.config import ICEBERG_CATALOG
 from sparkling.resources.spark import SparkConnectResource
 
@@ -8,6 +8,7 @@ from sparkling.resources.spark import SparkConnectResource
     group_name="transactions_reporting",
     compute_kind="python",
     tags={"pipeline": "transactions"},
+    automation_condition=AutomationCondition.eager(),
 )
 def final_stats_report(context: AssetExecutionContext, spark: SparkConnectResource):
     """Fetches and logs the final user statistics with metadata."""

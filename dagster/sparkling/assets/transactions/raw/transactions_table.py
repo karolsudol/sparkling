@@ -1,6 +1,6 @@
 import subprocess
 
-from dagster import AssetExecutionContext, Output, asset
+from dagster import AssetExecutionContext, AutomationCondition, Output, asset
 from sparkling.assets.transactions.raw.transactions_csv import transactions_csv
 from sparkling.config import ICEBERG_CATALOG, SPARK_REMOTE
 from sparkling.resources.spark import SparkConnectResource
@@ -12,6 +12,7 @@ from sparkling.resources.spark import SparkConnectResource
     key_prefix=[ICEBERG_CATALOG, "raw"],
     compute_kind="spark",
     tags={"pipeline": "transactions"},
+    automation_condition=AutomationCondition.eager(),
 )
 def transactions(context: AssetExecutionContext, spark: SparkConnectResource):
     """Ingests transactions from CSV into the Iceberg raw.transactions table."""

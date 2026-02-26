@@ -4,6 +4,7 @@ from pathlib import Path
 
 from dagster_dbt import DagsterDbtTranslator, DbtCliResource
 
+from dagster import AutomationCondition
 from sparkling.config import DBT_PROFILES_DIR, DBT_PROJECT_DIR, ICEBERG_CATALOG
 
 DBT_MANIFEST_PATH = Path(DBT_PROJECT_DIR) / "target" / "manifest.json"
@@ -21,7 +22,6 @@ class SparklingDbtTranslator(DagsterDbtTranslator):
         return [ICEBERG_CATALOG, dbt_resource_props.get("schema"), name]
 
     def get_group_name(self, dbt_resource_props):
-        # Dagster group names must be [A-Za-z0-9_]+
         resource_type = dbt_resource_props.get("resource_type")
         if resource_type == "source":
             return "transactions_sources"
@@ -31,6 +31,10 @@ class SparklingDbtTranslator(DagsterDbtTranslator):
 
     def get_tags(self, dbt_resource_props):
         return {"pipeline": "transactions", "compute_kind": "dbt"}
+
+    def get_automation_condition(self, dbt_resource_props):
+        # Best Practice: dbt models automatically update when sources/parents change
+        return AutomationCondition.eager()
 
 
 # Try to ensure manifest exists (only if writable)
