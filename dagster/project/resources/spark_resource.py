@@ -14,6 +14,6 @@ class SparkConnectResource(ConfigurableResource):
         )
 
 
-spark_resource = SparkConnectResource(
+spark_conn = SparkConnectResource(
     remote_url=os.getenv("SPARK_REMOTE", "sc://spark-connect:15002")
 )
