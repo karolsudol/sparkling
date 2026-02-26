@@ -63,6 +63,7 @@ def final_stats_report(context: AssetExecutionContext, spark: SparkConnectResour
 
     # 2. Capture specific metrics for Dagster UI
     session = spark.get_session("DagsterReporter")
+    session.sql(f"USE {ICEBERG_CATALOG}")
     df = session.table(f"{ICEBERG_CATALOG}.mrt.mrt_user_stats")
 
     total_users = df.count()
