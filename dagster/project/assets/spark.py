@@ -6,7 +6,7 @@ from ..config import ICEBERG_CATALOG, SPARK_REMOTE
 from ..resources.spark import SparkConnectResource
 
 
-@asset(group_name="raw")
+@asset(group_name="ingestion")
 def transactions_csv(context: AssetExecutionContext):
     """Generates the raw transaction CSV files in the landing zone."""
     # We can reuse the existing script
@@ -55,7 +55,7 @@ def transactions(context: AssetExecutionContext, spark: SparkConnectResource):
     )
 
 
-@asset(deps=[[ICEBERG_CATALOG, "mrt", "mrt_user_stats"]], group_name="mrt")
+@asset(deps=[[ICEBERG_CATALOG, "mrt", "mrt_user_stats"]], group_name="reporting")
 def final_stats_report(context: AssetExecutionContext, spark: SparkConnectResource):
     """Fetches and logs the final user statistics with metadata."""
     # 1. Run the existing show_marts.py for console output

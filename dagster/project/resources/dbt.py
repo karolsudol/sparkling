@@ -20,6 +20,15 @@ class SparklingDbtTranslator(DagsterDbtTranslator):
 
         return [ICEBERG_CATALOG, dbt_resource_props.get("schema"), name]
 
+    def get_group_name(self, dbt_resource_props):
+        # This maps dbt schemas/sources to Dagster Group Names
+        resource_type = dbt_resource_props.get("resource_type")
+        if resource_type == "source":
+            return "sources"
+
+        # Return the schema name (stg, dw, mrt) as the group name
+        return dbt_resource_props.get("schema")
+
 
 # Try to ensure manifest exists (only if writable)
 if not DBT_MANIFEST_PATH.exists() and os.access(DBT_PROJECT_DIR, os.W_OK):
