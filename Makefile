@@ -1,7 +1,7 @@
 include .env
 export
 
-.PHONY: up start stop clean run-transaction-pipeline verify clean-warehouse logs ps fix-permissions chown-me lint setup generate-transactions ingest-transactions transform-transactions show-marts
+.PHONY: up start stop clean run-transaction-pipeline verify clean-warehouse logs ps fix-permissions chown-me lint setup generate-transactions ingest-transactions transform-transactions show-marts clean-orphans
 
 # --- Initialization ---
 
@@ -55,13 +55,13 @@ check-contracts:
 # --- Infrastructure ---
 
 up:
-	docker compose up -d --build --remove-orphans iceberg-rest spark-master spark-worker spark-connect dagster-webserver dagster-daemon
+	docker compose up -d --build iceberg-rest spark-master spark-worker spark-connect dagster-webserver dagster-daemon
 	@$(MAKE) urls
 	@$(MAKE) fix-permissions
 	@$(MAKE) setup-namespaces
 
 start:
-	docker compose up -d --remove-orphans iceberg-rest spark-master spark-worker spark-connect dagster-webserver dagster-daemon
+	docker compose up -d iceberg-rest spark-master spark-worker spark-connect dagster-webserver dagster-daemon
 	@$(MAKE) urls
 	@$(MAKE) fix-permissions
 
@@ -76,6 +76,9 @@ urls:
 
 stop:
 	docker compose stop
+
+clean-orphans:
+	docker compose up -d --remove-orphans
 
 clean:
 	docker compose down -v --rmi local --remove-orphans

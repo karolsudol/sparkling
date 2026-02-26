@@ -135,6 +135,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dagster
+    image: dagster:latest
     container_name: dagster-webserver
     hostname: dagster-webserver
     restart: always
@@ -166,6 +167,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dagster
+    image: dagster:latest
     container_name: dagster-daemon
     hostname: dagster-daemon
     restart: always
