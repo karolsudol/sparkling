@@ -31,7 +31,7 @@ ingest-transactions:
 
 transform-transactions:
 	@echo "${BLUE}Transforming Transactions (STG -> MRT)...${END}"
-	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt build --select "*transactions*" "*user_stats*" --profiles-dir .
+	@cd dbt && SPARK_REMOTE=${SPARK_REMOTE} PYTHONWARNINGS=ignore uv run dbt build --select "*transactions*" "*user_stats*" --profiles-dir .
 
 # Show final marts data (runs locally)
 show-marts:
@@ -50,7 +50,7 @@ check-contracts:
 	@echo "${BLUE}Running Dry Run for Ingestion...${END}"
 	@PYTHONWARNINGS=ignore uv run spark-pipelines dry-run --spec pipelines/raw_transactions.yml --remote ${SPARK_REMOTE}
 	@echo "${BLUE}Validating dbt SQL against YAML contracts...${END}"
-	@docker exec -w /app/dbt -e SPARK_REMOTE=${SPARK_REMOTE} -e PYTHONWARNINGS=ignore spark-master dbt build --select "*transactions*" "*user_stats*" --limit 0 --profiles-dir .
+	@cd dbt && SPARK_REMOTE=${SPARK_REMOTE} PYTHONWARNINGS=ignore uv run dbt build --select "*transactions*" "*user_stats*" --limit 0 --profiles-dir .
 
 # --- Infrastructure ---
 
