@@ -4,7 +4,7 @@ from dagster import AssetExecutionContext, asset
 
 
 @asset(
-    group_name="ingestion",
+    group_name="transactions_ingestion",
     compute_kind="python",
     tags={"pipeline": "transactions"},
 )

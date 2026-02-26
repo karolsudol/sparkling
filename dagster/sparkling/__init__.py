@@ -1,5 +1,6 @@
 from dagster import Definitions
-from project import assets, resources
+
+from . import assets, resources
 
 defs = Definitions(
     assets=assets.all_assets,

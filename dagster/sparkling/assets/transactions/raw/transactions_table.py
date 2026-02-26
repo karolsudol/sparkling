@@ -1,14 +1,14 @@
 import subprocess
 
 from dagster import AssetExecutionContext, Output, asset
-from project.assets.transactions.raw.transactions_csv import transactions_csv
-from project.config import ICEBERG_CATALOG, SPARK_REMOTE
-from project.resources.spark import SparkConnectResource
+from sparkling.assets.transactions.raw.transactions_csv import transactions_csv
+from sparkling.config import ICEBERG_CATALOG, SPARK_REMOTE
+from sparkling.resources.spark import SparkConnectResource
 
 
 @asset(
     deps=[transactions_csv],
-    group_name="raw",
+    group_name="transactions_raw",
     key_prefix=[ICEBERG_CATALOG, "raw"],
     compute_kind="spark",
     tags={"pipeline": "transactions"},

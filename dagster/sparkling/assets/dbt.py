@@ -1,7 +1,7 @@
 from dagster_dbt import DbtCliResource, dbt_assets
 
 from dagster import AssetExecutionContext
-from project.resources.dbt import DBT_MANIFEST_PATH, SparklingDbtTranslator
+from sparkling.resources.dbt import DBT_MANIFEST_PATH, SparklingDbtTranslator
 
 
 @dbt_assets(
