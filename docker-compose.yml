@@ -64,13 +64,13 @@ services:
       --conf spark.driver.host=spark-connect
       --conf spark.driver.port=15003
       --conf spark.driver.bindAddress=0.0.0.0
-      --conf spark.sql.warehouse.dir=${WAREHOUSE_PATH}
+      --conf spark.sql.warehouse.dir=${ICEBERG_WAREHOUSE}
       --conf spark.sql.defaultCatalog=${ICEBERG_CATALOG}
       --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions
       --conf spark.sql.catalog.${ICEBERG_CATALOG}=org.apache.iceberg.spark.SparkCatalog
       --conf spark.sql.catalog.${ICEBERG_CATALOG}.type=rest
       --conf spark.sql.catalog.${ICEBERG_CATALOG}.uri=http://iceberg-rest:8181
-      --conf spark.sql.catalog.${ICEBERG_CATALOG}.warehouse=file:/app/spark-warehouse/iceberg
+      --conf spark.sql.catalog.${ICEBERG_CATALOG}.warehouse=${ICEBERG_WAREHOUSE}
       --conf spark.sql.iceberg.vectorization.enabled=false
       --class org.apache.spark.sql.connect.service.SparkConnectServer
       /opt/spark/external/spark-connect-assembly_2.13-4.1.1.jar
@@ -90,8 +90,13 @@ services:
       - CATALOG_WAREHOUSE=file:///app/spark-warehouse/iceberg
       - CATALOG_IO__IMPL=org.apache.iceberg.hadoop.HadoopFileIO
       - HADOOP_USER_NAME=iceberg
+      - CATALOG_CATALOG__IMPL=org.apache.iceberg.jdbc.JdbcCatalog
+      - CATALOG_URI=jdbc:sqlite:file:/app/metadata/iceberg_catalog.db
+      - CATALOG_JDBC_USER=iceberg
+      - CATALOG_JDBC_PASSWORD=iceberg
     volumes:
       - ./spark-warehouse:/app/spark-warehouse
+      - ./metadata:/app/metadata
     networks:
       - spark-network
 
@@ -131,6 +136,69 @@ services:
     networks:
       - spark-network
 
+  dagster-webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile.dagster
+    image: dagster:latest
+    container_name: dagster-webserver
+    hostname: dagster-webserver
+    restart: always
+    command: ["dagster-webserver", "-h", "0.0.0.0", "-p", "3000", "-w", "/app/dagster/workspace.yaml"]
+    environment:
+      - DAGSTER_HOME=/opt/dagster/dagster_home
+      - SPARK_REMOTE=sc://spark-connect:15002
+      - ICEBERG_CATALOG=${ICEBERG_CATALOG}
+    volumes:
+      - ./dagster/dagster.yaml:/opt/dagster/dagster_home/dagster.yaml
+      - dagster-storage:/opt/dagster/dagster_home
+      - ./dagster/project:/app/dagster/project
+      - ./dagster/workspace.yaml:/app/dagster/workspace.yaml
+      - ./dbt:/app/dbt
+      - ./src:/app/src
+      - ./pipelines:/app/pipelines
+      - ./data:/app/data
+      - ./spark-warehouse:/app/spark-warehouse
+      - ./checkpoints:/app/checkpoints
+    ports:
+      - "3000:3000"
+    depends_on:
+      spark-connect:
+        condition: service_started
+    networks:
+      - spark-network
+
+  dagster-daemon:
+    build:
+      context: .
+      dockerfile: Dockerfile.dagster
+    image: dagster:latest
+    container_name: dagster-daemon
+    hostname: dagster-daemon
+    restart: always
+    command: ["dagster-daemon", "run", "-w", "/app/dagster/workspace.yaml"]
+    environment:
+      - DAGSTER_HOME=/opt/dagster/dagster_home
+      - SPARK_REMOTE=sc://spark-connect:15002
+      - ICEBERG_CATALOG=${ICEBERG_CATALOG}
+    volumes:
+      - ./dagster/dagster.yaml:/opt/dagster/dagster_home/dagster.yaml
+      - dagster-storage:/opt/dagster/dagster_home
+      - ./dagster/project:/app/dagster/project
+      - ./dagster/workspace.yaml:/app/dagster/workspace.yaml
+      - ./dbt:/app/dbt
+      - ./src:/app/src
+      - ./pipelines:/app/pipelines
+      - ./data:/app/data
+      - ./spark-warehouse:/app/spark-warehouse
+      - ./checkpoints:/app/checkpoints
+    depends_on:
+      - dagster-webserver
+    networks:
+      - spark-network
+
+volumes:
+  dagster-storage:
 networks:
   spark-network:
     driver: bridge
