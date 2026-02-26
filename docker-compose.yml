@@ -58,6 +58,8 @@ services:
         condition: service_started
     ports:
       - "15002:15002"
+      - "4040:4040"
+      - "4041:4041"
     command: >
       /opt/spark/bin/spark-submit
       --master spark://spark-master:7077
